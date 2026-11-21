@@ -1,0 +1,3 @@
+export function AnalysisNotes({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  return <div className="notes-pane"><div className="notes-caption">Decisions, open questions, and everything the next person needs to know.<span>Plain text · included in Excel</span></div><textarea aria-label="Analysis notes" placeholder="Capture requirements, decisions, and open questions…" value={value} onChange={event => onChange(event.target.value)} spellCheck={false} /><div className="notes-footer">{value.length.toLocaleString()} characters<span>Your notes stay in this workspace until you export.</span></div></div>
+}
