@@ -75,7 +75,7 @@ export const PayloadEditor = memo(function PayloadEditor({ side, payload, theme,
   return <section className={`payload-panel ${side}`} aria-label={`${side} request editor`}>
     <div className="panel-caption"><span className={`side-indicator ${side}`} /><h2>{side === 'source' ? 'Source Request' : 'Target Request'}</h2><span className="caption-meta">{side === 'source' ? 'Inbound payload' : 'Outbound payload'}</span></div>
     <div className="editor-toolbar">
-      <input className="system-input" aria-label={`${side} system name`} value={payload.system} onChange={event => onChange({ system: event.target.value })} spellCheck={false} />
+      <input className="system-input" aria-label={`${side} system name`} placeholder={side === 'source' ? 'Source System' : 'Target System'} value={payload.system} onChange={event => onChange({ system: event.target.value })} spellCheck={false} />
       <span className="toolbar-divider" />
       <select aria-label={`${side} payload format`} value={payload.format} onChange={event => onChange({ format: event.target.value as Payload['format'] })}>{formats.map(format => <option key={format}>{format}</option>)}</select>
       <div className="editor-actions">

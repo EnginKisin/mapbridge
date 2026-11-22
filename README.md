@@ -73,7 +73,7 @@ Open the address printed by Vite. It is normally `http://127.0.0.1:5173`.
 6. Select **Export Excel** to download the full analysis.
 7. Use **Import Excel** to open a saved MapBridge workbook later.
 
-The app starts with anonymous sample data. Click **Sample data** to clear the example and start a blank workspace. New Workspace and Clear Workspace are also available in the workspace menu.
+The app starts with anonymous sample payloads, mappings, and notes. The integration and system names start empty, with **Untitled integration**, **Source System**, and **Target System** as placeholders; enter your own names directly. Click **Sample data** to clear the example and start a blank workspace. New Workspace and Clear Workspace are also available in the workspace menu.
 
 **Excel is your save file.** The app keeps your work in memory only. Export it before you refresh or close the tab. After edits, the app asks the browser to show a leave-page warning, but browser behavior can vary. Make sure the download finishes and keep the file.
 
