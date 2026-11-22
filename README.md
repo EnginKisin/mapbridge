@@ -17,7 +17,7 @@ MapBridge is an analysis and documentation tool. It does not send API requests, 
 - **Editor tools:** Syntax highlighting, line numbers, folding, find/replace, word wrap, copy, file loading, and formatting.
 - **Compact layout:** Resize the editors, change the height of the analysis panel, hide the bottom panel, or expand one editor.
 - **Field Mapping:** Add, edit, delete, filter, and reorder rows. Set transformation rules, required fields, default values, and descriptions.
-- **Field discovery:** Find fields in JSON/XML/IDoc payloads and add them to the table one by one or in a group.
+- **Field discovery and matching:** Find fields in JSON/XML/IDoc payloads, select a source and target to create one mapping row, or add fields on one side individually or in a group.
 - **Missing-field warnings:** See which mapping paths are no longer in the payload. Your mapping rows and notes are kept.
 - **Analysis Notes:** Write decisions, requirements, and open questions in a simple text area.
 - **Excel import/export:** Save and restore the complete analysis with one `.xlsx` file containing four sheets.
@@ -67,8 +67,8 @@ Open the address printed by Vite. It is normally `http://127.0.0.1:5173`.
 
 1. Enter an integration name and the names of the Source and Target systems.
 2. Paste or load a payload into each editor. Choose the correct format for each side.
-3. Add mapping rows manually, or open **Fields** to review fields found in the payloads.
-4. Match Source Field and Target Field. Add the rule, required flag, default value, and description.
+3. Add mapping rows manually, or open **Fields**, select a source field and its target counterpart, and choose **Match fields**.
+4. Review Source Field and Target Field. Add the rule, required flag, default value, and description.
 5. Write your decisions and open questions in **Analysis Notes**.
 6. Select **Export Excel** to download the full analysis.
 7. Use **Import Excel** to open a saved MapBridge workbook later.
@@ -81,17 +81,38 @@ Before an import replaces your current work, MapBridge checks the file and asks 
 
 ### Keyboard and panel controls
 
+Open **Shortcuts & help** from the workspace menu or the help icon to view the in-app guide. Keyboard shortcuts depend on your operating system:
+
+| Action | Windows / Linux | Mac |
+| --- | --- | --- |
+| Format the active payload editor | Ctrl + Enter | ⌘ + Enter |
+| Export the workspace to Excel | Ctrl + S | ⌘ + S |
+| Find text in the editor | Ctrl + F | ⌘ + F |
+| Open replace in the editor | Ctrl + H | ⌘ + Option + F |
+| Close a dialog or menu | Escape | Escape |
+
+On Mac, `⌘` means Command. Find and replace apply to the focused payload editor.
+
 | Control | Action |
 | --- | --- |
-| Ctrl/Cmd + Enter | Format the active payload editor |
-| Ctrl/Cmd + S | Export the workspace to Excel |
-| Escape | Close a dialog or menu |
-| Ctrl/Cmd + F | Find text in the editor |
-| Ctrl/Cmd + H | Open replace, depending on platform key bindings |
 | Drag a divider | Resize the editors or the bottom panel |
 | Double-click a divider | Reset its position |
 | Arrow keys on a focused divider | Resize with the keyboard |
 | Double-click a mapping text cell | Open a larger text editor |
+
+### Transformation rules
+
+The **Transformation Rule** column records how a source value should become a target value. These rules document the intended integration behavior; MapBridge saves them in Excel without executing them or changing either payload. Use **Description** to explain the condition, lookup table, formula, or other details.
+
+| Rule | Meaning | Example |
+| --- | --- | --- |
+| **Direct** | Copy the value unchanged | `amount: 750` → `amount: 750` |
+| **Rename** | Change the field name while keeping its value | `customerId: "C100"` → `CustomerCode: "C100"` |
+| **Constant** | Assign a fixed target value | Always set `country` to `"TR"` |
+| **Lookup** | Translate a value using a correspondence table | `"A"` → `"Active"`, `"P"` → `"Pending"` |
+| **Conditional** | Choose a value based on a condition | Set `priority` to `"High"` when `amount > 1000` |
+| **Transform** | Change the value's format or content | `"2026-11-22"` → `"22.11.2026"` |
+| **Custom** | Describe special or multi-step mapping logic | Combine first and last names, then remove extra spaces |
 
 ## Field discovery
 
@@ -101,10 +122,14 @@ Open **Field Mapping → Fields** to review the results:
 
 1. Choose **Source** or **Target**.
 2. Use the search box to filter field paths.
-3. Select **Add** for one field, **Add all** for all new fields on that side, or **Add filtered** for the search results.
-4. Fill in the other side of each mapping manually.
+3. Choose **Select** beside a field. If its counterpart has not been selected, the window switches to the other side so you can select it.
+4. Review the selected source and target, then choose **Match fields** to add them together in one mapping row. Click either selected path to choose a different field before matching.
 
-For example, adding `warehouseCode` to the source payload makes it available in Fields. Adding it to the table fills Source Field; Target Field stays empty until you enter the target path.
+For example, select source `warehouseCode` and target `Order.WarehouseCode`, then choose **Match fields** to create `warehouseCode → Order.WarehouseCode` in a single row. Selecting fields alone does not change the mapping table.
+
+After matching, both fields leave the unmapped lists and the selection clears for the next pair. Existing mapping rows keep their rules, descriptions, and other details. Closing the window without choosing **Match fields** discards the pending selection.
+
+To add fields on one side only, use **Add** for one field, **Add all** for all new fields on that side, or **Add filtered** for the search results. The other side stays empty until you fill it in manually.
 
 Discovery does not create automatic source-to-target matches. Adding, deleting, or reordering mapping rows does not change either payload.
 
@@ -203,9 +228,9 @@ npm run test:e2e
 
 You can also set `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` to use an existing Chromium executable.
 
-Tests cover JSON/XML formatting, invalid payloads, field discovery, missing-field review, Unicode, long text, formula-like content, and Excel export/import round trips. A round trip means exporting a workspace and importing it again without losing its analysis data.
+Tests cover JSON/XML formatting, invalid payloads, field discovery, selected source-to-target pairs, duplicate prevention, mapping row limits, missing-field review, Unicode, long text, formula-like content, and Excel export/import round trips. A round trip means exporting a workspace and importing it again without losing its analysis data.
 
-Browser tests cover 1366×768 and 1920×1080 layouts, light/dark themes, panel resizing, mapping edits, file loading, clipboard copy, confirmations, and real Excel downloads and imports. They also check for browser errors and unwanted external requests in the workspace test.
+Browser tests cover 1366×768 and 1920×1080 layouts, light/dark themes, panel resizing, mapping edits, field selection and matching, closing an unconfirmed selection, file loading, clipboard copy, confirmations, and real Excel downloads and imports, including matched field pairs. They also check for browser errors and unwanted external requests in the workspace test.
 
 Local browser checks have been run with Chromium. Firefox and Safari have not yet been tested.
 

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { blankWorkspace, newMapping, sampleWorkspace } from '../../models/workspace'
 import { exportWorkbook, importWorkbook } from '../excel/workbook'
 import { discoverFields, DISCOVERY_LIMITS } from './discover'
-import { addDiscoveredFields, fieldPresence, unmappedFields } from './reconcile'
+import { addDiscoveredFields, fieldPresence, matchDiscoveredFields, unmappedFields } from './reconcile'
 import { canonicalPath } from './paths'
 
 describe('JSON field discovery', () => {
@@ -88,6 +88,42 @@ describe('XML and IDoc field discovery', () => {
 })
 
 describe('Conservative reconciliation', () => {
+  it('matches selected JSON and XML fields in one row without changing existing analysis', () => {
+    const original = sampleWorkspace()
+    const snapshot = structuredClone(original)
+    const discoveries = {
+      source: discoverFields('{"warehouseCode":"W1"}', 'JSON'),
+      target: discoverFields('<Order><WarehouseCode>W1</WarehouseCode></Order>', 'XML'),
+    }
+    const added = matchDiscoveredFields(original.mappings, discoveries, 'warehouseCode', 'Order.WarehouseCode')
+    expect(added).toHaveLength(4)
+    expect(added.slice(0, 3)).toEqual(original.mappings)
+    expect(added[3]).toMatchObject({ source: 'warehouseCode', target: 'Order.WarehouseCode', rule: 'Direct', required: false })
+    expect(unmappedFields(added, discoveries.source, 'source')).toEqual([])
+    expect(unmappedFields(added, discoveries.target, 'target')).toEqual([])
+    expect(matchDiscoveredFields(added, discoveries, 'warehouseCode', 'Order.WarehouseCode')).toBe(added)
+    expect(original).toEqual(snapshot)
+  })
+  it('rejects stale, missing or already mapped selections on either side', () => {
+    const discoveries = { source: discoverFields('{"items":[{"id":1}]}', 'JSON'), target: discoverFields('{"id":1}', 'JSON') }
+    const rows = [{ ...newMapping(), source: 'items[0].id' }]
+    expect(matchDiscoveredFields(rows, discoveries, 'items[].id', 'id')).toBe(rows)
+    const targetRows = [{ ...newMapping(), target: '["id"]' }]
+    expect(matchDiscoveredFields(targetRows, discoveries, 'items[].id', 'id')).toBe(targetRows)
+    const empty: typeof rows = []
+    expect(matchDiscoveredFields(empty, discoveries, '', 'id')).toBe(empty)
+    expect(matchDiscoveredFields(empty, discoveries, 'items[].id', 'removed')).toBe(empty)
+    expect(matchDiscoveredFields(empty, { ...discoveries, target: { ...discoveries.target, state: 'pending' } }, 'items[].id', 'id')).toBe(empty)
+    expect(matchDiscoveredFields(empty, { ...discoveries, source: { ...discoveries.source, state: 'limited' } }, 'items[].id', 'id')).toHaveLength(1)
+  })
+  it('allows a pair in the last available row and rejects exceeding the limit', () => {
+    const rows = Array.from({ length: 9_999 }, newMapping)
+    const discoveries = { source: discoverFields('{"id":1}', 'JSON'), target: discoverFields('{"code":1,"other":2}', 'JSON') }
+    const added = matchDiscoveredFields(rows, discoveries, 'id', 'code')
+    expect(added).toHaveLength(10_000)
+    expect(() => matchDiscoveredFields([...rows, newMapping()], discoveries, 'id', 'other')).toThrow('10,000')
+    expect(rows).toHaveLength(9_999)
+  })
   it('adds one-sided rows only on request, avoids duplicates, and preserves manual analysis', () => {
     const original = sampleWorkspace()
     const snapshot = structuredClone(original)

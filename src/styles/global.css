@@ -183,12 +183,21 @@ button { display: inline-flex; align-items: center; justify-content: center; gap
 .discovery-list th { position: sticky; top: 0; background: var(--raised); z-index: 1; height: 28px; text-align: left; font-size: 11px; color: var(--muted); font-weight: 500; }
 .discovery-list th:first-child { padding-left: 12px; }
 .discovery-list th:nth-child(2) { width: 85px; }
-.discovery-list th:nth-child(3) { width: 75px; }
+.discovery-list th:nth-child(3) { width: 172px; }
 .discovery-list td { height: 36px; font-size: 12px; border-top: 1px solid var(--subtle-border); }
 .discovery-list td:first-child { padding: 0 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .discovery-list code { color: var(--source); font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12px; }
 .discovery-list .field-kind { color: var(--muted); font-size: 10px; }
 .discovery-list .button { font-size: 11px; }
+.discovery-field-actions { display: flex; gap: 6px; }
+.discovery-list .is-selected { background: color-mix(in srgb, var(--source) 8%, var(--surface)); }
+.discovery-list .button[aria-pressed='true'] { border-color: var(--source); color: var(--source); }
+.discovery-match { display: flex; gap: 10px; align-items: center; padding: 12px 0 0; margin-top: 12px; border-top: 1px solid var(--border); flex-shrink: 0; }
+.discovery-selection { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 8px 10px; background: var(--input); border: 1px solid var(--border); border-radius: 4px; text-align: left; }
+.discovery-selection:hover { border-color: var(--source); }
+.discovery-selection > span { color: var(--muted); font-size: 10px; }
+.discovery-selection > code { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--source); font-size: 11px; }
+.discovery-selection:nth-of-type(2) > code { color: var(--target); }
 .discovery-empty { min-height: 140px; display: flex; align-items: center; justify-content: center; padding: 16px; color: var(--muted); font-size: 12px; }
 .discovery-legend { display: flex; justify-content: space-between; gap: 8px; font-size: 10px; color: var(--muted); margin-top: 8px; flex-shrink: 0; }
 .discovery-legend > span { color: var(--dim); }

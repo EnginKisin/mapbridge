@@ -6,7 +6,7 @@ import { IconButton } from '../layout/IconButton'
 import { Modal } from '../layout/Modal'
 import { DiscoveredFields } from './DiscoveredFields'
 import type { FieldDiscovery } from '../../services/discovery/types'
-import { addDiscoveredFields, fieldPresence, unmappedFields } from '../../services/discovery/reconcile'
+import { addDiscoveredFields, fieldPresence, matchDiscoveredFields, unmappedFields } from '../../services/discovery/reconcile'
 
 interface Props { rows: MappingRow[]; discoveries: Record<Side, FieldDiscovery>; getActiveSide: () => Side; onChange: (rows: MappingRow[]) => void }
 export const MappingTable = memo(function MappingTable({ rows, discoveries, getActiveSide, onChange }: Props) {
@@ -40,6 +40,10 @@ export const MappingTable = memo(function MappingTable({ rows, discoveries, getA
     setSearch(''); setOnlyMissing(false)
     onChange(addDiscoveredFields(rows, discoveries[side], side, paths))
   }
+  const match = (source: string, target: string) => {
+    setSearch(''); setOnlyMissing(false)
+    onChange(matchDiscoveredFields(rows, discoveries, source, target))
+  }
   return <div className="mapping-pane">
     <div className="mapping-toolbar"><div className="mapping-discovery-summary"><button className="discovery-trigger" aria-label="Review payload fields" title={`Source: ${discoveries.source.message}\nTarget: ${discoveries.target.message}`} onClick={openReview}>{scanning ? <LoaderCircle className="spin" /> : <ScanSearch />}Fields{newSource + newTarget > 0 && <span className="discovery-new-count">{newSource + newTarget} new</span>}{issues && <TriangleAlert className="discovery-issue" />}</button>{(missing > 0 || onlyMissing) && <button className="missing-summary" aria-label="Show missing mappings" aria-pressed={onlyMissing} title={`${missing} mappings reference fields not found in the current payloads. Click to filter.`} onClick={() => setOnlyMissing(value => !value)}><TriangleAlert />{missing} missing</button>}</div><div className="mapping-tools"><input type="search" aria-label="Filter mappings" placeholder="Filter mappings…" value={search} onChange={event => setSearch(event.target.value)} /><button className="button small" disabled={rows.length >= 10_000} onClick={() => { setSearch(''); setOnlyMissing(false); onChange([...rows, newMapping()]) }}><Plus />Add mapping</button></div></div>
     <div className="table-scroll">
@@ -62,7 +66,7 @@ export const MappingTable = memo(function MappingTable({ rows, discoveries, getA
     </div>
     <div className="mapping-footer"><span><CopyPlus />{rows.length} field {rows.length === 1 ? 'mapping' : 'mappings'}<span className="footer-dot">·</span>{rows.filter(row => row.required).length} required</span><span>Documentation only · no transformations are executed</span></div>
     {editing && <CellDialog key={`${editing.id}-${editing.key}`} value={editing.draft} label={editing.key === 'description' ? 'Edit description' : 'Edit mapping value'} onClose={() => setEditing(null)} onSave={value => { update(editing.id, { [editing.key]: value }); setEditing(null) }} />}
-    {reviewSide && <DiscoveredFields rows={rows} discoveries={discoveries} initialSide={reviewSide} onAdd={add} onClose={() => setReviewSide(null)} />}
+    {reviewSide && <DiscoveredFields rows={rows} discoveries={discoveries} initialSide={reviewSide} onAdd={add} onMatch={match} onClose={() => setReviewSide(null)} />}
   </div>
 })
 

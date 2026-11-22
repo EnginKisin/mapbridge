@@ -22,3 +22,13 @@ export function addDiscoveredFields(rows: MappingRow[], discovery: FieldDiscover
   if (!available.length) return rows
   return [...rows, ...available.map(field => ({ ...newMapping(), [side]: field.path }))]
 }
+
+export function matchDiscoveredFields(rows: MappingRow[], discoveries: Record<Side, FieldDiscovery>, source: string, target: string): MappingRow[] {
+  const selectable = (side: Side, path: string) => {
+    const discovery = discoveries[side]
+    return (discovery.state === 'ready' || discovery.state === 'limited') && unmappedFields(rows, discovery, side).some(field => field.path === path)
+  }
+  if (!selectable('source', source) || !selectable('target', target)) return rows
+  if (rows.length >= 10_000) throw new Error('A workspace can contain at most 10,000 mapping rows.')
+  return [...rows, { ...newMapping(), source, target }]
+}
