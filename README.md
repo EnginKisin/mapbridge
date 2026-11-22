@@ -100,6 +100,8 @@ On Mac, `⌘` means Command. Find and replace apply to the focused payload edito
 | Arrow keys on a focused divider | Resize with the keyboard |
 | Double-click a mapping text cell | Open a larger text editor |
 
+The help window also includes a **GitHub** link to the source code and **Feedback / Report an issue** to submit bugs or feature requests through GitHub Issues. Both links open in a new tab.
+
 ### Transformation rules
 
 The **Transformation Rule** column records how a source value should become a target value. These rules document the intended integration behavior; MapBridge saves them in Excel without executing them or changing either payload. Use **Description** to explain the condition, lookup table, formula, or other details.
