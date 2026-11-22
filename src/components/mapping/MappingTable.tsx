@@ -1,7 +1,7 @@
 import { memo, useMemo, useState } from 'react'
 import { ArrowDown, ArrowUp, ChevronDown, CopyPlus, LoaderCircle, Plus, Rows3, ScanSearch, Trash2, TriangleAlert } from 'lucide-react'
-import type { MappingRow, Side } from '../../models/workspace'
-import { newMapping, rules } from '../../models/workspace'
+import type { MappingRow, ReviewStatus, Side } from '../../models/workspace'
+import { newMapping, reviewStatuses, rules } from '../../models/workspace'
 import { IconButton } from '../layout/IconButton'
 import { Modal } from '../layout/Modal'
 import { DiscoveredFields } from './DiscoveredFields'
@@ -12,6 +12,7 @@ interface Props { rows: MappingRow[]; discoveries: Record<Side, FieldDiscovery>;
 export const MappingTable = memo(function MappingTable({ rows, discoveries, getActiveSide, onChange }: Props) {
   const [search, setSearch] = useState('')
   const [onlyMissing, setOnlyMissing] = useState(false)
+  const [reviewFilter, setReviewFilter] = useState<ReviewStatus | ''>('')
   const [reviewSide, setReviewSide] = useState<Side | null>(null)
   const [editing, setEditing] = useState<{ id: string; key: 'source' | 'target' | 'defaultValue' | 'description'; draft: string } | null>(null)
   const update = (id: string, patch: Partial<MappingRow>) => onChange(rows.map(row => row.id === id ? { ...row, ...patch } : row))
@@ -30,25 +31,27 @@ export const MappingTable = memo(function MappingTable({ rows, discoveries, getA
   const missing = status.filter(item => item.source === 'missing' || item.target === 'missing').length
   const scanning = discoveries.source.state === 'pending' || discoveries.target.state === 'pending'
   const issues = [discoveries.source, discoveries.target].some(result => result.state === 'invalid' || result.state === 'limited')
-  const visible = status.filter(item => (!onlyMissing || item.source === 'missing' || item.target === 'missing') && [item.row.source, item.row.target, item.row.description, item.row.rule, item.row.defaultValue].some(value => value.toLowerCase().includes(search.toLowerCase())))
-  const filtering = Boolean(search || onlyMissing)
+  const visible = status.filter(item => (!onlyMissing || item.source === 'missing' || item.target === 'missing') && (!reviewFilter || item.row.reviewStatus === reviewFilter) && [item.row.source, item.row.target, item.row.description, item.row.rule, item.row.reviewStatus, item.row.defaultValue].some(value => value.toLowerCase().includes(search.toLowerCase())))
+  const filtering = Boolean(search || onlyMissing || reviewFilter)
+  const clearFilters = () => { setSearch(''); setOnlyMissing(false); setReviewFilter('') }
+  const addRow = () => { clearFilters(); onChange([...rows, newMapping()]) }
   const openReview = () => {
     const active = getActiveSide()
     setReviewSide(discoveries[active].state !== 'ready' ? active : newSource ? 'source' : newTarget ? 'target' : active)
   }
   const add = (side: Side, paths: string[]) => {
-    setSearch(''); setOnlyMissing(false)
+    clearFilters()
     onChange(addDiscoveredFields(rows, discoveries[side], side, paths))
   }
   const match = (source: string, target: string) => {
-    setSearch(''); setOnlyMissing(false)
+    clearFilters()
     onChange(matchDiscoveredFields(rows, discoveries, source, target))
   }
   return <div className="mapping-pane">
-    <div className="mapping-toolbar"><div className="mapping-discovery-summary"><button className="discovery-trigger" aria-label="Review payload fields" title={`Source: ${discoveries.source.message}\nTarget: ${discoveries.target.message}`} onClick={openReview}>{scanning ? <LoaderCircle className="spin" /> : <ScanSearch />}Fields{newSource + newTarget > 0 && <span className="discovery-new-count">{newSource + newTarget} new</span>}{issues && <TriangleAlert className="discovery-issue" />}</button>{(missing > 0 || onlyMissing) && <button className="missing-summary" aria-label="Show missing mappings" aria-pressed={onlyMissing} title={`${missing} mappings reference fields not found in the current payloads. Click to filter.`} onClick={() => setOnlyMissing(value => !value)}><TriangleAlert />{missing} missing</button>}</div><div className="mapping-tools"><input type="search" aria-label="Filter mappings" placeholder="Filter mappings…" value={search} onChange={event => setSearch(event.target.value)} /><button className="button small" disabled={rows.length >= 10_000} onClick={() => { setSearch(''); setOnlyMissing(false); onChange([...rows, newMapping()]) }}><Plus />Add mapping</button></div></div>
+    <div className="mapping-toolbar"><div className="mapping-discovery-summary"><button className="discovery-trigger" aria-label="Review payload fields" title={`Source: ${discoveries.source.message}\nTarget: ${discoveries.target.message}`} onClick={openReview}>{scanning ? <LoaderCircle className="spin" /> : <ScanSearch />}Fields{newSource + newTarget > 0 && <span className="discovery-new-count">{newSource + newTarget} new</span>}{issues && <TriangleAlert className="discovery-issue" />}</button>{(missing > 0 || onlyMissing) && <button className="missing-summary" aria-label="Show missing mappings" aria-pressed={onlyMissing} title={`${missing} mappings reference fields not found in the current payloads. Click to filter.`} onClick={() => setOnlyMissing(value => !value)}><TriangleAlert />{missing} missing</button>}</div><div className="mapping-tools"><select className="review-filter" aria-label="Filter by review status" value={reviewFilter} onChange={event => setReviewFilter(event.target.value as ReviewStatus | '')}><option value="">All review states</option>{reviewStatuses.map(value => <option key={value}>{value}</option>)}</select><input type="search" aria-label="Filter mappings" placeholder="Filter mappings…" value={search} onChange={event => setSearch(event.target.value)} /><button className="button small" disabled={rows.length >= 10_000} onClick={addRow}><Plus />Add mapping</button></div></div>
     <div className="table-scroll">
-      <table className="mapping-table"><colgroup><col style={{ width: 46 }} /><col style={{ width: '19%' }} /><col style={{ width: '19%' }} /><col style={{ width: 156 }} /><col style={{ width: 78 }} /><col style={{ width: '12%' }} /><col style={{ width: '26%' }} /><col style={{ width: 112 }} /></colgroup>
-        <thead><tr><th className="row-number">No</th><th>Source Field</th><th>Target Field</th><th>Transformation Rule</th><th className="center">Required</th><th>Default Value</th><th>Description</th><th className="center">Actions</th></tr></thead>
+      <table className="mapping-table"><colgroup>{[4, 15, 15, 13, 13, 6, 9, 16, 9].map((width, index) => <col key={index} style={{ width: `${width}%` }} />)}</colgroup>
+        <thead><tr><th className="row-number">No</th><th>Source Field</th><th>Target Field</th><th>Transformation Rule</th><th>Review Status</th><th className="center">Required</th><th>Default Value</th><th>Description</th><th className="center">Actions</th></tr></thead>
         <tbody>{visible.map(({ row, index, source, target }) => <tr key={row.id}>
           <td className="row-number">{String(index + 1).padStart(2, '0')}</td>
           {(['source', 'target'] as const).map(key => {
@@ -56,15 +59,16 @@ export const MappingTable = memo(function MappingTable({ rows, discoveries, getA
             return <td key={key}><div className={`path-cell-wrap ${missing ? 'is-missing' : ''}`}><input className="path-cell" aria-label={`${key} field ${index + 1}`} aria-invalid={missing || undefined} placeholder={key === 'source' ? 'source.field' : 'target.field'} title={`${row[key]}\n${missing ? 'Not found in the current payload. Mapping retained.\n' : ''}Double-click to expand`} value={row[key]} onChange={event => update(row.id, { [key]: event.target.value })} onDoubleClick={() => setEditing({ id: row.id, key, draft: row[key] })} />{missing && <span className="field-missing" role="img" aria-label={`${key === 'source' ? 'Source' : 'Target'} field not found: ${row[key]}`} title="Not found in the current payload. Your mapping is retained."><TriangleAlert aria-hidden="true" /></span>}</div></td>
           })}
           <td><div className={`rule-select rule-${row.rule.toLowerCase()}`}><select aria-label={`Transformation rule ${index + 1}`} value={row.rule} onChange={event => update(row.id, { rule: event.target.value as MappingRow['rule'] })}>{rules.map(rule => <option key={rule}>{rule}</option>)}</select><ChevronDown /></div></td>
+          <td><select className="review-status" data-status={row.reviewStatus} aria-label={`Review status ${index + 1}`} value={row.reviewStatus} onChange={event => update(row.id, { reviewStatus: event.target.value as ReviewStatus })}>{reviewStatuses.map(value => <option key={value}>{value}</option>)}</select></td>
           <td className="center"><input type="checkbox" aria-label={`Required ${index + 1}`} checked={row.required} onChange={event => update(row.id, { required: event.target.checked })} /></td>
           {(['defaultValue', 'description'] as const).map(key => <td key={key}><textarea rows={1} aria-label={`${key === 'defaultValue' ? 'Default value' : 'Description'} ${index + 1}`} placeholder="—" title={`${row[key]}\nDouble-click to expand`} value={row[key]} onChange={event => update(row.id, { [key]: event.target.value })} onDoubleClick={() => setEditing({ id: row.id, key, draft: row[key] })} /></td>)}
           <td><div className="row-actions"><IconButton label={`Move mapping ${index + 1} up`} disabled={index === 0} onClick={() => move(index, -1)}><ArrowUp /></IconButton><IconButton label={`Move mapping ${index + 1} down`} disabled={index === rows.length - 1} onClick={() => move(index, 1)}><ArrowDown /></IconButton><IconButton label={`Delete mapping ${index + 1}`} onClick={() => onChange(rows.filter(item => item.id !== row.id))}><Trash2 /></IconButton></div></td>
         </tr>)}</tbody>
       </table>
       {!visible.length && <div className="mapping-empty"><Rows3 /><span>{filtering ? 'No mappings match your filter.' : 'Connect your first pair of fields.'}</span>{!filtering && <button className="button small" onClick={() => onChange([newMapping()])}><Plus />Add mapping</button>}</div>}
-      {visible.length > 0 && !filtering && <button className="add-row" disabled={rows.length >= 10_000} onClick={() => onChange([...rows, newMapping()])}><Plus />Add mapping<span>Double-click a text cell for expanded editing</span></button>}
+      {visible.length > 0 && !filtering && <button className="add-row" disabled={rows.length >= 10_000} onClick={addRow}><Plus />Add mapping<span>Double-click a text cell for expanded editing</span></button>}
     </div>
-    <div className="mapping-footer"><span><CopyPlus />{rows.length} field {rows.length === 1 ? 'mapping' : 'mappings'}<span className="footer-dot">·</span>{rows.filter(row => row.required).length} required</span><span>Documentation only · no transformations are executed</span></div>
+    <div className="mapping-footer"><span><CopyPlus />{rows.length} field {rows.length === 1 ? 'mapping' : 'mappings'}<span className="footer-dot">·</span>{rows.filter(row => row.required).length} required<span className="footer-dot">·</span>{rows.filter(row => row.reviewStatus === 'Completed').length}/{rows.length} completed</span><span>Documentation only · no transformations are executed</span></div>
     {editing && <CellDialog key={`${editing.id}-${editing.key}`} value={editing.draft} label={editing.key === 'description' ? 'Edit description' : 'Edit mapping value'} onClose={() => setEditing(null)} onSave={value => { update(editing.id, { [editing.key]: value }); setEditing(null) }} />}
     {reviewSide && <DiscoveredFields rows={rows} discoveries={discoveries} initialSide={reviewSide} onAdd={add} onMatch={match} onClose={() => setReviewSide(null)} />}
   </div>

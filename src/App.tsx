@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ArrowDownToLine, ArrowRight, Braces, Check, ChevronDown, ChevronUp, CircleHelp, Columns2, Download, Ellipsis, ExternalLink, FilePlus2, FileSpreadsheet, Github, GripHorizontal, Keyboard, LoaderCircle, MessageSquare, Moon, PanelBottomClose, PanelBottomOpen, Plus, Rows3, ShieldCheck, StickyNote, Sun, Trash2, Upload, X } from 'lucide-react'
+import { ArrowDownToLine, ArrowRight, Braces, Check, ChevronDown, ChevronUp, CircleHelp, Columns2, Download, Ellipsis, ExternalLink, FilePlus2, FileSpreadsheet, FileText, Github, GripHorizontal, Keyboard, LoaderCircle, MessageSquare, Moon, PanelBottomClose, PanelBottomOpen, Plus, Rows3, ShieldCheck, StickyNote, Sun, Trash2, Upload, X } from 'lucide-react'
 import { blankWorkspace, hasWork, sampleWorkspace } from './models/workspace'
 import type { Payload, Side, Workspace } from './models/workspace'
 import { PayloadEditor } from './components/editor/PayloadEditor'
 import { MappingTable } from './components/mapping/MappingTable'
 import { AnalysisNotes } from './components/notes/AnalysisNotes'
+import { AnalysisReport } from './components/report/AnalysisReport'
 import { IconButton } from './components/layout/IconButton'
 import { Modal } from './components/layout/Modal'
 import { useSplitter } from './hooks/useSplitter'
@@ -26,6 +27,7 @@ export default function App() {
   const [toast, setToast] = useState<{ message: string; error: boolean } | null>(null)
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null)
   const [help, setHelp] = useState(false)
+  const [report, setReport] = useState<Workspace | null>(null)
   const workspaceRef = useRef(workspace)
   workspaceRef.current = workspace
   const fileRef = useRef<HTMLInputElement>(null)
@@ -114,7 +116,7 @@ export default function App() {
       <span className="header-divider" />
       <div className="integration-title"><label htmlFor="integration-name">INTEGRATION WORKSPACE</label><input id="integration-name" placeholder="Untitled integration" value={workspace.integrationName} onChange={event => change(current => ({ ...current, integrationName: event.target.value }))} spellCheck={false} /></div>
       <span className={`workspace-state ${dirty ? 'is-dirty' : ''}`}>{dirty ? 'Unsaved changes' : sample ? 'Sample workspace' : 'In memory'}</span>
-      <div className="header-actions"><button className="button import-button" disabled={!!busy} onClick={() => fileRef.current?.click()}>{busy === 'import' ? <LoaderCircle className="spin" /> : <Upload />}Import Excel</button><button className="button primary" disabled={!!busy} onClick={() => void doExport()}>{busy === 'export' ? <LoaderCircle className="spin" /> : <Download />}<span>{busy === 'export' ? 'Exporting…' : 'Export Excel'}</span></button><span className="header-divider" /><IconButton label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`} onClick={() => setTheme(value => value === 'dark' ? 'light' : 'dark')}>{theme === 'dark' ? <Sun /> : <Moon />}</IconButton><details className="workspace-menu" ref={menuRef}><summary title="Workspace options" aria-label="Workspace options"><Ellipsis /></summary><div className="dropdown"><button onClick={() => clear('new')}><FilePlus2 />New workspace</button><button onClick={() => clear('clear')}><Trash2 />Clear workspace</button><div className="menu-divider" /><button onClick={() => { setHelp(true); if (menuRef.current) menuRef.current.open = false }}><Keyboard />Shortcuts & help</button></div></details></div>
+      <div className="header-actions"><button className="button import-button" disabled={!!busy} onClick={() => fileRef.current?.click()}>{busy === 'import' ? <LoaderCircle className="spin" /> : <Upload />}Import Excel</button><button className="button primary" disabled={!!busy} onClick={() => void doExport()}>{busy === 'export' ? <LoaderCircle className="spin" /> : <Download />}<span>{busy === 'export' ? 'Exporting…' : 'Export Excel'}</span></button><span className="header-divider" /><IconButton label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`} onClick={() => setTheme(value => value === 'dark' ? 'light' : 'dark')}>{theme === 'dark' ? <Sun /> : <Moon />}</IconButton><details className="workspace-menu" ref={menuRef}><summary title="Workspace options" aria-label="Workspace options"><Ellipsis /></summary><div className="dropdown"><button onClick={() => { setReport(workspaceRef.current); if (menuRef.current) menuRef.current.open = false }}><FileText />Analysis report / PDF</button><div className="menu-divider" /><button onClick={() => clear('new')}><FilePlus2 />New workspace</button><button onClick={() => clear('clear')}><Trash2 />Clear workspace</button><div className="menu-divider" /><button onClick={() => { setHelp(true); if (menuRef.current) menuRef.current.open = false }}><Keyboard />Shortcuts & help</button></div></details></div>
       <input type="file" ref={fileRef} data-testid="excel-file" accept=".xlsx" hidden onChange={event => { void doImport(event.target.files?.[0]); event.target.value = '' }} />
     </header>
     <div className="app-body">
@@ -135,10 +137,12 @@ export default function App() {
     <footer className="app-status"><div><ShieldCheck /><span>Private by design</span><span className="footer-dot">·</span><span className="muted">Nothing leaves your browser</span></div><div><FileSpreadsheet /><span>Excel is your save file</span><span className="footer-dot">·</span><button onClick={() => setHelp(true)}><span className="shortcut-label">{navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'} S</span> to export</button></div></footer>
     {toast && <div className={`toast ${toast.error ? 'toast-error' : ''}`} role={toast.error ? 'alert' : 'status'}>{toast.error ? <CircleHelp /> : <Check />}<span>{toast.message}</span><IconButton label="Dismiss notification" onClick={() => setToast(null)}><X /></IconButton></div>}
     {confirmation && <Modal title={confirmation.title} onClose={() => setConfirmation(null)}><p>{confirmation.description}</p><div className="modal-actions"><button autoFocus className="button" onClick={() => setConfirmation(null)}>Cancel</button><button className="button primary" onClick={() => { const action = confirmation.action; setConfirmation(null); action() }}>Continue</button></div></Modal>}
+    {report && <AnalysisReport workspace={report} onClose={() => { setReport(null); menuRef.current?.querySelector('summary')?.focus() }} />}
     {help && <Modal title="Your integration workbench" className="help-modal" initialFocus=".modal-actions button" onClose={() => setHelp(false)}>
       <p>Compare payloads, document mappings, and export your entire analysis in one Excel file. Import that file to continue later.</p>
       <div className="help-shortcuts"><span>Format active editor</span><kbd>Ctrl / ⌘ + Enter</kbd><span>Export workspace</span><kbd>Ctrl / ⌘ + S</kbd><span>Find in editor</span><kbd>Ctrl / ⌘ + F</kbd><span>Replace in editor (Windows / Linux)</span><kbd>Ctrl + H</kbd><span>Replace in editor (Mac)</span><kbd>⌘ + Option + F</kbd><span>Close a dialog</span><kbd>Esc</kbd></div>
       <p>Drag the dividers to resize panels. Double-click a divider to reset it, or use arrow keys when focused. Double-click a mapping text cell for expanded editing.</p>
+      <p>Use Review Status to mark mappings as Draft, Needs clarification, or Completed and filter your review list. Open Workspace options → Analysis report / PDF to preview all mappings, notes, and payloads, then print or save as PDF. Excel keeps the editable workspace, including review states.</p>
       <p className="privacy-note"><ShieldCheck />Everything runs in your browser. No accounts, uploads to servers, analytics, or browser storage. Refreshing closes unsaved work; export Excel to keep it.</p>
       <div className="help-about"><span>Created by EnginKisin</span><nav aria-label="Project links">
         <a href="https://github.com/EnginKisin/maptelabridge" target="_blank" rel="noopener noreferrer" title="Open GitHub in a new tab"><Github aria-hidden="true" />GitHub<ExternalLink aria-hidden="true" /></a>

@@ -2,6 +2,8 @@ export const formats = ['JSON', 'XML', 'IDoc XML', 'Plain Text', 'SQL'] as const
 export type PayloadFormat = typeof formats[number]
 export const rules = ['Direct', 'Rename', 'Constant', 'Lookup', 'Conditional', 'Transform', 'Custom'] as const
 export type TransformationRule = typeof rules[number]
+export const reviewStatuses = ['Draft', 'Needs clarification', 'Completed'] as const
+export type ReviewStatus = typeof reviewStatuses[number]
 export type Side = 'source' | 'target'
 export interface Payload { system: string; format: PayloadFormat; content: string }
 export interface MappingRow {
@@ -9,6 +11,7 @@ export interface MappingRow {
   source: string
   target: string
   rule: TransformationRule
+  reviewStatus: ReviewStatus
   required: boolean
   defaultValue: string
   description: string
@@ -21,7 +24,7 @@ export interface Workspace {
   notes: string
 }
 export function newMapping(): MappingRow {
-  return { id: crypto.randomUUID(), source: '', target: '', rule: 'Direct', required: false, defaultValue: '', description: '' }
+  return { id: crypto.randomUUID(), source: '', target: '', rule: 'Direct', reviewStatus: 'Draft', required: false, defaultValue: '', description: '' }
 }
 export function blankWorkspace(): Workspace {
   return { integrationName: '', source: { system: '', format: 'JSON', content: '' }, target: { system: '', format: 'XML', content: '' }, mappings: [], notes: '' }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import ExcelJS from 'exceljs'
 import JSZip from 'jszip'
-import { blankWorkspace, newMapping, sampleWorkspace } from '../../models/workspace'
+import { blankWorkspace, newMapping, reviewStatuses, sampleWorkspace } from '../../models/workspace'
 import type { Workspace } from '../../models/workspace'
 import { exportWorkbook, importWorkbook } from './workbook'
 import { excelFilename } from './filename'
@@ -20,6 +20,7 @@ async function modify(workspace: Workspace, mutate: (book: ExcelJS.Workbook) => 
 describe('Excel round trip', () => {
   it('exports exactly four readable sheets and restores every workspace field', async () => {
     const original = sampleWorkspace()
+    original.mappings.forEach((row, index) => { row.reviewStatus = reviewStatuses[index] })
     const buffer = await exportWorkbook(original)
     const book = new ExcelJS.Workbook()
     await book.xlsx.load(buffer)
@@ -59,6 +60,7 @@ describe('Excel round trip', () => {
     original.mappings[0].target = long
     original.mappings[0].defaultValue = long
     original.mappings[0].description = long
+    original.mappings[0].reviewStatus = 'Needs clarification'
     const buffer = await exportWorkbook(original)
     const book = new ExcelJS.Workbook()
     await book.xlsx.load(buffer)
@@ -67,6 +69,7 @@ describe('Excel round trip', () => {
     const raw = await zip.file('xl/sharedStrings.xml')!.async('string')
     expect(raw.includes('\ufffd'), 'Exported XML must not contain replacement characters').toBe(false)
     const restored = await importWorkbook(buffer)
+    expect(restored.mappings[0].reviewStatus).toBe('Needs clarification')
     const compareString = (actual: string, expected: string, label: string) => {
       let index = 0
       while (index < Math.min(actual.length, expected.length) && actual[index] === expected[index]) index++
@@ -110,6 +113,18 @@ describe('Excel round trip', () => {
   })
 })
 describe('Workbook validation', () => {
+  it('restores workbooks without a review column with Draft states', async () => {
+    const original = sampleWorkspace()
+    original.mappings[0].description = 'Long description '.repeat(5000)
+    const buffer = await modify(original, book => { book.getWorksheet('Field Mapping')!.spliceColumns(8, 1) })
+    expect(comparable(await importWorkbook(buffer))).toEqual(comparable(original))
+  })
+  it('defaults empty review cells to Draft and rejects unknown states or broken mapping parts', async () => {
+    const buffer = await modify(sampleWorkspace(), book => { book.getWorksheet('Field Mapping')!.getCell('H3').value = '' })
+    expect((await importWorkbook(buffer)).mappings[0].reviewStatus).toBe('Draft')
+    await expect(importWorkbook(await modify(sampleWorkspace(), book => { book.getWorksheet('Field Mapping')!.getCell('H3').value = 'Approved automatically' }))).rejects.toThrow('review status')
+    await expect(importWorkbook(await modify(sampleWorkspace(), book => { book.getWorksheet('Field Mapping')!.getCell('I3').value = 2 }))).rejects.toThrow('out of order')
+  })
   it('rejects non-XLSX and corrupt files', async () => {
     await expect(importWorkbook(new TextEncoder().encode('not excel').buffer)).rejects.toThrow('archive')
     await expect(importWorkbook(new ArrayBuffer(0))).rejects.toThrow('archive')

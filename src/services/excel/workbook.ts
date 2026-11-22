@@ -1,5 +1,5 @@
 import ExcelJS from 'exceljs'
-import { formats, rules, newMapping } from '../../models/workspace'
+import { formats, rules, reviewStatuses, newMapping } from '../../models/workspace'
 import type { Payload, Workspace } from '../../models/workspace'
 import { decodeText, encodeChunks, endings, splitLines } from './codec'
 import { assertWorkspaceSize, MAX_ROWS, validateArchive } from './limits'
@@ -8,7 +8,7 @@ import { normalizeSupplementaryUnicode, prepareUnicodeForExport } from './unicod
 const SHEETS = ['Source Request', 'Target Request', 'Field Mapping', 'Analysis Notes'] as const
 const WORKBOOK_NAME = 'MaptelaBridge'
 const LINE_HEADER = ['Line', 'Part', 'Payload Text', 'Line Ending']
-const MAPPING_HEADER = ['No', 'Source Field', 'Target Field', 'Transformation Rule', 'Required', 'Default Value', 'Description', 'Part']
+const MAPPING_HEADER = ['No', 'Source Field', 'Target Field', 'Transformation Rule', 'Required', 'Default Value', 'Description', 'Review Status', 'Part']
 const fail = (message: string): never => { throw new Error(`Invalid ${WORKBOOK_NAME} workbook: ${message}`) }
 function text(cell: ExcelJS.Cell): string {
   if (cell.value === null || cell.value === undefined) return ''
@@ -103,13 +103,13 @@ export async function exportWorkbook(workspace: Workspace): Promise<ArrayBuffer>
   const mapping = createSheet(book, SHEETS[2], 'mapping')
   styleHeader(mapping.addRow(MAPPING_HEADER))
   workspace.mappings.forEach((item, index) => {
-    const fields = [item.source, item.target, item.rule, item.required ? 'Yes' : 'No', item.defaultValue, item.description].map(encodeChunks)
+    const fields = [item.source, item.target, item.rule, item.required ? 'Yes' : 'No', item.defaultValue, item.description, item.reviewStatus].map(encodeChunks)
     const parts = Math.max(...fields.map(field => field.length))
     for (let part = 0; part < parts; part++) mapping.addRow([index + 1, ...fields.map(field => field[part] ?? ''), part + 1])
   })
-  mapping.columns = [8, 32, 32, 24, 12, 28, 80, 9].map(width => ({ width }))
+  mapping.columns = [8, 32, 32, 24, 12, 28, 80, 24, 9].map(width => ({ width }))
   mapping.views = [{ state: 'frozen', ySplit: 2, xSplit: 1 }]
-  mapping.autoFilter = { from: 'A2', to: `G${Math.max(2, mapping.rowCount)}` }
+  mapping.autoFilter = { from: 'A2', to: `H${Math.max(2, mapping.rowCount)}` }
   mapping.eachRow((row, i) => { if (i > 2) { row.alignment = { vertical: 'top', wrapText: true }; row.eachCell(cell => { cell.numFmt = '@' }) } })
   const notes = createSheet(book, SHEETS[3], 'notes')
   writeMeta(notes, [['Integration Name', workspace.integrationName]])
@@ -125,8 +125,7 @@ export async function importWorkbook(buffer: ArrayBuffer): Promise<Workspace> {
   if (book.worksheets.length !== 4 || SHEETS.some(name => !book.getWorksheet(name))) fail('expected the four original MaptelaBridge sheets.')
   for (const [index, name] of SHEETS.entries()) {
     const sheet = book.getWorksheet(name)!
-    if (sheet.rowCount > MAX_ROWS || sheet.columnCount > (index === 2 ? 8 : 4)) fail(`sheet ${name} is too large or has unexpected columns.`)
-    // Never use cached formula results, links or rich text as user content.
+    if (sheet.rowCount > MAX_ROWS || sheet.columnCount > (index === 2 ? 9 : 4)) fail(`sheet ${name} is too large or has unexpected columns.`)
     sheet.eachRow(row => row.eachCell(cell => {
       if (cell.value !== null && typeof cell.value !== 'string' && typeof cell.value !== 'number') fail('formulas, links and non-text values are not supported.')
       if (typeof cell.value === 'string' && cell.value.length > 32767) fail('a cell exceeds the Excel text limit.')
@@ -139,22 +138,28 @@ export async function importWorkbook(buffer: ArrayBuffer): Promise<Workspace> {
   const meta = readMeta(noteSheet, ['Integration Name'])
   if (source.name !== target.name || source.name !== meta.values[0]) fail('integration names do not match between sheets.')
   const sheet = book.getWorksheet(SHEETS[2])!
-  header(sheet, 2, MAPPING_HEADER)
+  const hasReviewStatus = text(sheet.getCell(2, 8)) === 'Review Status'
+  const mappingHeader = hasReviewStatus ? MAPPING_HEADER : MAPPING_HEADER.filter(value => value !== 'Review Status')
+  header(sheet, 2, mappingHeader)
+  if (sheet.columnCount > mappingHeader.length) fail('unexpected mapping columns.')
+  const partColumn = mappingHeader.length
   const mappings: Workspace['mappings'] = []
   let row = 3
   while (row <= sheet.rowCount) {
     if (mappings.length >= 10_000) fail('too many mappings.')
     const no = mappings.length + 1
-    const fields = ['', '', '', '', '', '']
+    const fields = Array<string>(hasReviewStatus ? 7 : 6).fill('')
     let part = 1
     do {
-      if (integer(sheet.getCell(row, 1)) !== no || integer(sheet.getCell(row, 8)) !== part++) fail('mapping parts are missing or out of order.')
+      if (integer(sheet.getCell(row, 1)) !== no || integer(sheet.getCell(row, partColumn)) !== part++) fail('mapping parts are missing or out of order.')
       fields.forEach((_, index) => { fields[index] += text(sheet.getCell(row, index + 2)) })
       row++
     } while (row <= sheet.rowCount && sheet.getCell(row, 1).value === no)
-    const [source, target, rule, required, defaultValue, description] = fields.map(decodeText)
+    const [source, target, rule, required, defaultValue, description, savedReviewStatus] = fields.map(decodeText)
+    const reviewStatus = savedReviewStatus || 'Draft'
     if (!rules.includes(rule as typeof rules[number]) || !['Yes', 'No'].includes(required)) fail('invalid transformation rule or required flag.')
-    mappings.push({ ...newMapping(), source, target, rule: rule as typeof rules[number], required: required === 'Yes', defaultValue, description })
+    if (!reviewStatuses.includes(reviewStatus as typeof reviewStatuses[number])) fail('invalid review status.')
+    mappings.push({ ...newMapping(), source, target, rule: rule as typeof rules[number], reviewStatus: reviewStatus as typeof reviewStatuses[number], required: required === 'Yes', defaultValue, description })
   }
   const result: Workspace = { integrationName: source.name, source: source.payload, target: target.payload, mappings, notes: readLines(noteSheet, meta.next, 'Analysis Notes') }
   assertWorkspaceSize(result)

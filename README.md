@@ -15,6 +15,8 @@ MaptelaBridge is an analysis and documentation tool. It does not send API reques
 ## Main features
 
 - **Side-by-side editors:** View and edit Source Request and Target Request together with Monaco Editor.
+- **Mapping review:** Mark each mapping as Draft, Needs clarification, or Completed; filter by review status and save the states in Excel.
+- **Analysis report:** Preview the complete integration analysis and print or save a PDF with integration details, mappings, review states, notes, and both payloads.
 - **Supported formats:** JSON, XML, SAP IDoc XML, Plain Text, and SQL.
 - **Editor tools:** Syntax highlighting, line numbers, folding, find/replace, word wrap, copy, file loading, and formatting.
 - **Compact layout:** Resize the editors, change the height of the analysis panel, hide the bottom panel, or expand one editor.
@@ -72,7 +74,7 @@ Open the address printed by Vite. It is normally `http://127.0.0.1:5173`.
 1. Enter an integration name and the names of the Source and Target systems.
 2. Paste or load a payload into each editor. Choose the correct format for each side.
 3. Add mapping rows manually, or open **Fields**, select a source field and its target counterpart, and choose **Match fields**.
-4. Review Source Field and Target Field. Add the rule, required flag, default value, and description.
+4. Review Source Field and Target Field. Add the rule, review status, required flag, default value, and description.
 5. Write your decisions and open questions in **Analysis Notes**.
 6. Select **Export Excel** to download the full analysis.
 7. Use **Import Excel** to open a saved MaptelaBridge workbook later.
@@ -82,6 +84,16 @@ The app starts with anonymous sample payloads, mappings, and notes. The integrat
 **Excel is your save file.** The app keeps your work in memory only. Export it before you refresh or close the tab. After edits, the app asks the browser to show a leave-page warning, but browser behavior can vary. Make sure the download finishes and keep the file.
 
 Before an import replaces your current work, MaptelaBridge checks the file and asks for confirmation. An invalid import does not replace the workspace.
+
+### Reviewing and sharing an analysis
+
+Each mapping starts as **Draft**. Use **Needs clarification** for an open question and **Completed** when the mapping decision is settled. **Filter by review status** combines with text search and the missing-fields filter. Adding a mapping clears the filters so the new row is visible. These states record your review decisions; the app does not automatically approve a mapping or execute its transformation.
+
+Review states are included in Excel exports. When importing a MaptelaBridge workbook without a Review Status column, mappings start as Draft.
+
+Open **Workspace options (⋯) → Analysis report / PDF** to preview a report. It includes integration and system names, all mappings regardless of table filters, review counts, analysis notes, and the complete source and target payloads. Select **Print / Save PDF**, then choose your printer or **Save as PDF** in the browser dialog. The print layout uses landscape A4 pages with wrapping text and repeated table headings.
+
+PDF is a sharing format; use Excel to continue editing. Opening, printing, or closing a report does not change the workspace or mark it as saved. Report generation runs entirely in your browser.
 
 ### Keyboard and panel controls
 
@@ -169,7 +181,7 @@ Every exported workbook has exactly four visible sheets:
 | --- | --- |
 | **Source Request** | Integration Name, Source System, Payload Format, and Source Payload |
 | **Target Request** | Integration Name, Target System, Payload Format, and Target Payload |
-| **Field Mapping** | No, Source Field, Target Field, Transformation Rule, Required, Default Value, and Description |
+| **Field Mapping** | No, Source Field, Target Field, Transformation Rule, Required, Default Value, Description, and Review Status |
 | **Analysis Notes** | Integration Name and the complete analysis notes |
 
 The mapping sheet has clear headers, filters, and frozen headings. Each sheet also has technical labels and part numbers so MaptelaBridge can restore the analysis correctly.
