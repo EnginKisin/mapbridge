@@ -281,3 +281,7 @@ Before a release, check the hosted address to make sure the editors load and Exc
 - Optional field creation in a payload, with a preview and user confirmation.
 
 The current version does not include automatic source-to-target matching, payload changes from table edits, API testing, live collaboration, cloud sharing, user accounts, or AI suggestions.
+
+## License
+
+MapBridge is licensed under the [MIT License](LICENSE). You can use, change, and share it, including for commercial use, while keeping the license and copyright notice. Third-party libraries keep their own licenses; see [Third-party notices](public/THIRD_PARTY_NOTICES.txt).
