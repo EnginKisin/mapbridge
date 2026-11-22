@@ -74,7 +74,7 @@ export default function App() {
   }, [notify])
   const doImport = async (file?: File) => {
     if (!file || busyRef.current) return
-    if (!file.name.toLowerCase().endsWith('.xlsx')) { notify('Select a MapBridge .xlsx file.', true); return }
+    if (!file.name.toLowerCase().endsWith('.xlsx')) { notify('Select a MaptelaBridge .xlsx file.', true); return }
     if (file.size > MAX_FILE_BYTES) { notify('Excel file exceeds the 50 MB import limit.', true); return }
     busyRef.current = true; setBusy('import')
     try {
@@ -110,7 +110,7 @@ export default function App() {
   }, [doExport])
   return <div className="app-shell">
     <header className="app-header">
-      <a className="brand" href="./" aria-label="MapBridge" onClick={event => event.preventDefault()}><span className="brand-mark"><svg viewBox="0 0 24 24" fill="none"><path d="M4 18V6l8 7 8-7v12M4 12h16" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" /></svg></span><span>MapBridge<span className="brand-period">.</span></span></a>
+      <a className="brand" href="./" aria-label="MaptelaBridge" onClick={event => event.preventDefault()}><span className="brand-mark"><svg viewBox="0 0 24 24" fill="none"><path d="M4 18V6l8 7 8-7v12M4 12h16" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" /></svg></span><span>MaptelaBridge<span className="brand-period">.</span></span></a>
       <span className="header-divider" />
       <div className="integration-title"><label htmlFor="integration-name">INTEGRATION WORKSPACE</label><input id="integration-name" placeholder="Untitled integration" value={workspace.integrationName} onChange={event => change(current => ({ ...current, integrationName: event.target.value }))} spellCheck={false} /></div>
       <span className={`workspace-state ${dirty ? 'is-dirty' : ''}`}>{dirty ? 'Unsaved changes' : sample ? 'Sample workspace' : 'In memory'}</span>
@@ -141,8 +141,8 @@ export default function App() {
       <p>Drag the dividers to resize panels. Double-click a divider to reset it, or use arrow keys when focused. Double-click a mapping text cell for expanded editing.</p>
       <p className="privacy-note"><ShieldCheck />Everything runs in your browser. No accounts, uploads to servers, analytics, or browser storage. Refreshing closes unsaved work; export Excel to keep it.</p>
       <div className="help-about"><span>Created by EnginKisin</span><nav aria-label="Project links">
-        <a href="https://github.com/EnginKisin/mapbridge" target="_blank" rel="noopener noreferrer" title="Open GitHub in a new tab"><Github aria-hidden="true" />GitHub<ExternalLink aria-hidden="true" /></a>
-        <a href="https://github.com/EnginKisin/mapbridge/issues/new" target="_blank" rel="noopener noreferrer" title="Open GitHub Issues in a new tab"><MessageSquare aria-hidden="true" />Feedback / Report an issue<ExternalLink aria-hidden="true" /></a>
+        <a href="https://github.com/EnginKisin/maptelabridge" target="_blank" rel="noopener noreferrer" title="Open GitHub in a new tab"><Github aria-hidden="true" />GitHub<ExternalLink aria-hidden="true" /></a>
+        <a href="https://github.com/EnginKisin/maptelabridge/issues/new" target="_blank" rel="noopener noreferrer" title="Open GitHub Issues in a new tab"><MessageSquare aria-hidden="true" />Feedback / Report an issue<ExternalLink aria-hidden="true" /></a>
       </nav></div>
       <div className="modal-actions"><button autoFocus className="button primary" onClick={() => setHelp(false)}><ArrowDownToLine />Got it</button></div>
     </Modal>}

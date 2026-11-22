@@ -14,6 +14,8 @@ test.afterEach(async ({ page }) => { expect(browserErrors.get(page)).toEqual([])
 
 async function ready(page: Page) {
   await page.goto('/')
+  await expect(page).toHaveTitle('MaptelaBridge — Integration Mapping Workspace')
+  await expect(page.getByRole('link', { name: 'MaptelaBridge', exact: true })).toBeVisible()
   await expect(page.locator('.monaco-editor')).toHaveCount(2)
   await expect(page.getByText('Valid JSON', { exact: true })).toBeVisible()
   await expect(page.getByText('Valid XML', { exact: true })).toBeVisible()

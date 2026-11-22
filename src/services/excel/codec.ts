@@ -20,7 +20,7 @@ export function encodeChunks(value: string): string[] {
   return chunks
 }
 export function decodeText(value: string): string {
-  if (/~(?![0-9a-f]{4})/.test(value)) throw new Error('Invalid MapBridge text escape. Preserve encoded text when editing this workbook.')
+  if (/~(?![0-9a-f]{4})/.test(value)) throw new Error('Invalid MaptelaBridge text escape. Preserve encoded text when editing this workbook.')
   return value.replace(/~([0-9a-f]{4})/g, (_, hex: string) => String.fromCharCode(parseInt(hex, 16)))
 }
 export interface TextLine { text: string; ending: 'LF' | 'CRLF' | 'CR' | 'NONE' }

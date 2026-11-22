@@ -23,7 +23,9 @@ describe('Excel round trip', () => {
     const buffer = await exportWorkbook(original)
     const book = new ExcelJS.Workbook()
     await book.xlsx.load(buffer)
+    expect(book.creator).toBe('MaptelaBridge')
     expect(book.worksheets.map(sheet => sheet.name)).toEqual(['Source Request', 'Target Request', 'Field Mapping', 'Analysis Notes'])
+    expect(book.worksheets.map(sheet => sheet.getCell('A1').value)).toEqual(Array(4).fill('MaptelaBridge'))
     expect(book.getWorksheet('Field Mapping')?.autoFilter).toBeDefined()
     expect(book.getWorksheet('Field Mapping')?.views[0].state).toBe('frozen')
     expect(comparable(await importWorkbook(buffer))).toEqual(comparable(original))
@@ -116,6 +118,14 @@ describe('Workbook validation', () => {
     await expect(importWorkbook(await modify(sampleWorkspace(), book => { book.removeWorksheet('Analysis Notes') }))).rejects.toThrow('four original')
     await expect(importWorkbook(await modify(sampleWorkspace(), book => { book.getWorksheet('Source Request')!.getCell('B1').value = '2' }))).rejects.toThrow('headers')
   })
+  it('rejects unrelated or inconsistent workbook identities', async () => {
+    await expect(importWorkbook(await modify(sampleWorkspace(), book => {
+      book.eachSheet(sheet => { sheet.getCell('A1').value = 'Unrelated workbook' })
+    }))).rejects.toThrow('headers')
+    await expect(importWorkbook(await modify(sampleWorkspace(), book => {
+      book.getWorksheet('Target Request')!.getCell('A1').value = 'Different workbook'
+    }))).rejects.toThrow('headers')
+  })
   it('rejects formulas even if a cached result is provided', async () => {
     const buffer = await modify(sampleWorkspace(), book => { book.getWorksheet('Source Request')!.getCell('C6').value = { formula: '1+1', result: 2 } })
     await expect(importWorkbook(buffer)).rejects.toThrow('formulas')
@@ -151,6 +161,6 @@ describe('Text codec and file names', () => {
   })
   it('sanitizes filenames and uses the local calendar date', () => {
     expect(excelFilename('SAP/SAG:Retter*?', new Date(2026, 10, 21, 1))).toBe('SAP_SAG_Retter___2026-11-21.xlsx')
-    expect(excelFilename('', new Date(2026, 10, 21))).toBe('MapBridge_2026-11-21.xlsx')
+    expect(excelFilename('', new Date(2026, 10, 21))).toBe('MaptelaBridge_2026-11-21.xlsx')
   })
 })

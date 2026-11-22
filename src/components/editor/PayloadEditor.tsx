@@ -36,7 +36,7 @@ export const PayloadEditor = memo(function PayloadEditor({ side, payload, theme,
       const editor = editorRef.current
       if (editor?.getModel()) {
         editor.pushUndoStop()
-        editor.executeEdits('mapbridge-format', [{ range: editor.getModel()!.getFullModelRange(), text: formatted }])
+        editor.executeEdits('maptelabridge-format', [{ range: editor.getModel()!.getFullModelRange(), text: formatted }])
         editor.pushUndoStop()
       } else onChange({ content: formatted })
       onNotify('Payload formatted.')
@@ -50,7 +50,7 @@ export const PayloadEditor = memo(function PayloadEditor({ side, payload, theme,
   useEffect(() => {
     const model = editorRef.current?.getModel()
     if (!model) return
-    monaco.editor.setModelMarkers(model, 'mapbridge', validation.state === 'invalid' ? [{ severity: monaco.MarkerSeverity.Error, message: validation.message, startLineNumber: validation.line || 1, startColumn: validation.column || 1, endLineNumber: validation.line || 1, endColumn: (validation.column || 1) + 1 }] : [])
+    monaco.editor.setModelMarkers(model, 'maptelabridge', validation.state === 'invalid' ? [{ severity: monaco.MarkerSeverity.Error, message: validation.message, startLineNumber: validation.line || 1, startColumn: validation.column || 1, endLineNumber: validation.line || 1, endColumn: (validation.column || 1) + 1 }] : [])
   }, [validation])
   const mounted: OnMount = editor => {
     editorRef.current = editor
@@ -90,7 +90,7 @@ export const PayloadEditor = memo(function PayloadEditor({ side, payload, theme,
       <input ref={fileRef} data-testid={`${side}-file`} type="file" accept=".json,.xml,.txt,.sql,.idoc" hidden onChange={event => { void upload(event.target.files?.[0]); event.target.value = '' }} />
     </div>
     <div className="monaco-container">
-      <Editor language={language} value={payload.content} theme={`mapbridge-${theme}`} onMount={mounted} onChange={content => onChange({ content: content ?? '' })} loading={<div className="editor-loading">Loading local editor…</div>}
+      <Editor language={language} value={payload.content} theme={`maptelabridge-${theme}`} onMount={mounted} onChange={content => onChange({ content: content ?? '' })} loading={<div className="editor-loading">Loading local editor…</div>}
         options={{ ariaLabel: `${side} payload`, fontSize: 12.5, fontFamily: '"SFMono-Regular", Consolas, "Liberation Mono", monospace', lineHeight: 21, minimap: { enabled: false }, automaticLayout: true, scrollBeyondLastLine: false, wordWrap: wrap ? 'on' : 'off', folding: true, showFoldingControls: 'mouseover', lineNumbersMinChars: 4, glyphMargin: false, padding: { top: 12, bottom: 12 }, tabSize: 2, insertSpaces: true, renderLineHighlight: 'line', overviewRulerBorder: false, hideCursorInOverviewRuler: true, scrollbar: { verticalScrollbarSize: 9, horizontalScrollbarSize: 9 }, fixedOverflowWidgets: true, stickyScroll: { enabled: false }, links: false, unicodeHighlight: { ambiguousCharacters: false }, bracketPairColorization: { enabled: false }, quickSuggestions: false }} />
     </div>
     <div className="editor-status">

@@ -6,9 +6,10 @@ import { assertWorkspaceSize, MAX_ROWS, validateArchive } from './limits'
 import { normalizeSupplementaryUnicode, prepareUnicodeForExport } from './unicode'
 
 const SHEETS = ['Source Request', 'Target Request', 'Field Mapping', 'Analysis Notes'] as const
+const WORKBOOK_NAME = 'MaptelaBridge'
 const LINE_HEADER = ['Line', 'Part', 'Payload Text', 'Line Ending']
 const MAPPING_HEADER = ['No', 'Source Field', 'Target Field', 'Transformation Rule', 'Required', 'Default Value', 'Description', 'Part']
-const fail = (message: string): never => { throw new Error(`Invalid MapBridge workbook: ${message}`) }
+const fail = (message: string): never => { throw new Error(`Invalid ${WORKBOOK_NAME} workbook: ${message}`) }
 function text(cell: ExcelJS.Cell): string {
   if (cell.value === null || cell.value === undefined) return ''
   if (typeof cell.value !== 'string') return fail(`${cell.address} must contain plain text.`)
@@ -31,7 +32,7 @@ function styleHeader(row: ExcelJS.Row) {
 }
 function createSheet(book: ExcelJS.Workbook, name: string, kind: string) {
   const sheet = book.addWorksheet(name)
-  sheet.addRow(['MapBridge', '1', kind])
+  sheet.addRow([WORKBOOK_NAME, '1', kind])
   sheet.getRow(1).font = { name: 'Calibri', bold: true, color: { argb: 'FF426433' } }
   return sheet
 }
@@ -96,7 +97,7 @@ function readPayload(sheet: ExcelJS.Worksheet, side: 'Source' | 'Target'): { nam
 export async function exportWorkbook(workspace: Workspace): Promise<ArrayBuffer> {
   assertWorkspaceSize(workspace)
   const book = new ExcelJS.Workbook()
-  book.creator = 'MapBridge'
+  book.creator = WORKBOOK_NAME
   writePayload(book, SHEETS[0], 'Source', workspace)
   writePayload(book, SHEETS[1], 'Target', workspace)
   const mapping = createSheet(book, SHEETS[2], 'mapping')
@@ -121,7 +122,7 @@ export async function importWorkbook(buffer: ArrayBuffer): Promise<Workspace> {
   validateArchive(buffer)
   const book = new ExcelJS.Workbook()
   try { await book.xlsx.load(await normalizeSupplementaryUnicode(buffer)) } catch { throw new Error('Unable to read this Excel file. It may be damaged or password protected.') }
-  if (book.worksheets.length !== 4 || SHEETS.some(name => !book.getWorksheet(name))) fail('expected the four original MapBridge sheets.')
+  if (book.worksheets.length !== 4 || SHEETS.some(name => !book.getWorksheet(name))) fail('expected the four original MaptelaBridge sheets.')
   for (const [index, name] of SHEETS.entries()) {
     const sheet = book.getWorksheet(name)!
     if (sheet.rowCount > MAX_ROWS || sheet.columnCount > (index === 2 ? 8 : 4)) fail(`sheet ${name} is too large or has unexpected columns.`)
@@ -130,7 +131,7 @@ export async function importWorkbook(buffer: ArrayBuffer): Promise<Workspace> {
       if (cell.value !== null && typeof cell.value !== 'string' && typeof cell.value !== 'number') fail('formulas, links and non-text values are not supported.')
       if (typeof cell.value === 'string' && cell.value.length > 32767) fail('a cell exceeds the Excel text limit.')
     }))
-    header(sheet, 1, ['MapBridge', '1', ['source', 'target', 'mapping', 'notes'][index]])
+    header(sheet, 1, [WORKBOOK_NAME, '1', ['source', 'target', 'mapping', 'notes'][index]])
   }
   const source = readPayload(book.getWorksheet(SHEETS[0])!, 'Source')
   const target = readPayload(book.getWorksheet(SHEETS[1])!, 'Target')

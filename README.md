@@ -1,14 +1,16 @@
-# MapBridge
+# MaptelaBridge
 
 **Integration Mapping Workspace**
 
-MapBridge is a browser-based tool for technical business analysts and integration developers. It helps teams compare source and target payloads, write field mappings, and record analysis notes in one compact workspace.
+[Open MaptelaBridge](https://enginkisin.github.io/maptelabridge/)
+
+MaptelaBridge is a browser-based tool for technical business analysts and integration developers. It helps teams compare source and target payloads, write field mappings, and record analysis notes in one compact workspace.
 
 During an integration meeting, you can keep both payloads on screen and document how their fields should connect. Save the whole analysis in one Excel file, then import the same file later to continue your work.
 
-MapBridge is an analysis and documentation tool. It does not send API requests, run SQL, or transform business data.
+MaptelaBridge is an analysis and documentation tool. It does not send API requests, run SQL, or transform business data.
 
-![MapBridge workspace](docs/images/workspace.png)
+![MaptelaBridge workspace](docs/images/workspace.png)
 
 ## Main features
 
@@ -43,9 +45,11 @@ The app bundles its libraries, editor workers, and fonts in the build. It does n
 
 Use **Node.js 24 LTS** and npm. The `.nvmrc` file sets the Node.js version, and `package-lock.json` keeps dependency versions consistent.
 
-From the project folder, run:
+Clone the repository, then start the development server:
 
 ```sh
+git clone https://github.com/EnginKisin/maptelabridge.git
+cd maptelabridge
 npm ci
 npm run dev
 ```
@@ -63,7 +67,7 @@ Open the address printed by Vite. It is normally `http://127.0.0.1:5173`.
 | `npm run test:watch` | Run unit tests again when files change |
 | `npm run test:e2e` | Run browser tests against the production build |
 
-## How to use MapBridge
+## How to use MaptelaBridge
 
 1. Enter an integration name and the names of the Source and Target systems.
 2. Paste or load a payload into each editor. Choose the correct format for each side.
@@ -71,13 +75,13 @@ Open the address printed by Vite. It is normally `http://127.0.0.1:5173`.
 4. Review Source Field and Target Field. Add the rule, required flag, default value, and description.
 5. Write your decisions and open questions in **Analysis Notes**.
 6. Select **Export Excel** to download the full analysis.
-7. Use **Import Excel** to open a saved MapBridge workbook later.
+7. Use **Import Excel** to open a saved MaptelaBridge workbook later.
 
 The app starts with anonymous sample payloads, mappings, and notes. The integration and system names start empty, with **Untitled integration**, **Source System**, and **Target System** as placeholders; enter your own names directly. Click **Sample data** to clear the example and start a blank workspace. New Workspace and Clear Workspace are also available in the workspace menu.
 
 **Excel is your save file.** The app keeps your work in memory only. Export it before you refresh or close the tab. After edits, the app asks the browser to show a leave-page warning, but browser behavior can vary. Make sure the download finishes and keep the file.
 
-Before an import replaces your current work, MapBridge checks the file and asks for confirmation. An invalid import does not replace the workspace.
+Before an import replaces your current work, MaptelaBridge checks the file and asks for confirmation. An invalid import does not replace the workspace.
 
 ### Keyboard and panel controls
 
@@ -104,7 +108,7 @@ The help window also includes a **GitHub** link to the source code and **Feedbac
 
 ### Transformation rules
 
-The **Transformation Rule** column records how a source value should become a target value. These rules document the intended integration behavior; MapBridge saves them in Excel without executing them or changing either payload. Use **Description** to explain the condition, lookup table, formula, or other details.
+The **Transformation Rule** column records how a source value should become a target value. These rules document the intended integration behavior; MaptelaBridge saves them in Excel without executing them or changing either payload. Use **Description** to explain the condition, lookup table, formula, or other details.
 
 | Rule | Meaning | Example |
 | --- | --- | --- |
@@ -118,7 +122,7 @@ The **Transformation Rule** column records how a source value should become a ta
 
 ## Field discovery
 
-MapBridge scans JSON, XML, and IDoc XML after you stop typing for about 500 ms. The scan runs in a background worker in your browser. A newer edit cancels the previous scan.
+MaptelaBridge scans JSON, XML, and IDoc XML after you stop typing for about 500 ms. The scan runs in a background worker in your browser. A newer edit cancels the previous scan.
 
 Open **Field Mapping → Fields** to review the results:
 
@@ -168,7 +172,7 @@ Every exported workbook has exactly four visible sheets:
 | **Field Mapping** | No, Source Field, Target Field, Transformation Rule, Required, Default Value, and Description |
 | **Analysis Notes** | Integration Name and the complete analysis notes |
 
-The mapping sheet has clear headers, filters, and frozen headings. Each sheet also has technical labels and part numbers so MapBridge can restore the analysis correctly.
+The mapping sheet has clear headers, filters, and frozen headings. Each sheet also has technical labels and part numbers so MaptelaBridge can restore the analysis correctly.
 
 ### Keeping the original text
 
@@ -180,12 +184,12 @@ The mapping sheet has clear headers, filters, and frozen headings. Each sheet al
 - Import rejects formula cells, including formulas with saved results.
 - Added mappings use the same workbook format. Field suggestions and warnings are calculated again after import.
 
-MapBridge imports its own workbook format, not any Excel file. Keep sheet names, schema headers, part numbers, and row order unchanged. Theme, panel sizes, cursor position, filter text, and undo history are not saved in Excel.
+MaptelaBridge imports its own workbook format, not any Excel file. Keep sheet names, schema headers, part numbers, and row order unchanged. Theme, panel sizes, cursor position, filter text, and undo history are not saved in Excel.
 
 <details>
 <summary>Technical details of workbook format version 1</summary>
 
-Row 1 in each sheet contains `MapBridge`, version `1`, and the sheet type. Metadata uses `Label / Text / Part` records.
+Row 1 in each sheet contains `MaptelaBridge`, version `1`, and the sheet type. Metadata uses `Label / Text / Part` records.
 
 Payloads and notes use `Line / Part / Payload Text` (or `Analysis Notes`) `/ Line Ending`. The ending codes are `LF`, `CRLF`, `CR`, and `NONE`. `CONT` means the same line continues in the next part. Long mapping values use an extra `Part` column. These records allow exact text recovery, including the final newline.
 
@@ -197,7 +201,7 @@ Keep these codes if you edit the workbook by hand.
 
 ## Privacy
 
-All payload processing happens in your browser. MapBridge does not send payloads or notes to a server.
+All payload processing happens in your browser. MaptelaBridge does not send payloads or notes to a server.
 
 - No backend, database, accounts, authentication, or cloud storage.
 - No analytics or telemetry.
@@ -282,21 +286,22 @@ tests/e2e/           Browser tests
 
 ## Static hosting and GitHub Pages
 
-Build the app with:
+The live app is available at **https://enginkisin.github.io/maptelabridge/**.
+
+[The deployment workflow](.github/workflows/deploy.yml) publishes every push to `main`. It installs dependencies with `npm ci`, runs the unit tests, builds the app with `VITE_BASE_PATH=/maptelabridge/`, and deploys `dist/` to GitHub Pages. A failed test or build stops the deployment.
+
+In the repository's **Settings → Pages**, the deployment source is **GitHub Actions**. You can follow deployments or run the workflow manually from [Actions](https://github.com/EnginKisin/maptelabridge/actions/workflows/deploy.yml).
+
+To preview the same build locally:
 
 ```sh
-npm run build
+VITE_BASE_PATH=/maptelabridge/ npm run build
+VITE_BASE_PATH=/maptelabridge/ npm run preview
 ```
 
-Publish the contents of `dist/` to a static host. Pushing the source code to GitHub alone does not publish the app. This repository does not include an automatic deployment workflow.
+Open `http://127.0.0.1:4173/maptelabridge/`. Workers, fonts, and other required files are included in the build. The app has no routes that need special server rewrite rules.
 
-The default Vite base path is `./`. For a GitHub Pages repository path, you can set it before building:
-
-```sh
-VITE_BASE_PATH=/mapbridge/ npm run build
-```
-
-Replace `/mapbridge/` with your repository path if needed. Workers, fonts, and other required files are included in the build. The app has no routes that need special server rewrite rules.
+For another static host, run `npm run build` and publish the contents of `dist/`. The default Vite base path is `./`; set `VITE_BASE_PATH` if the host requires a different path. If you fork or rename the repository, update the path in the workflow and the live links in this README.
 
 Before a release, check the hosted address to make sure the editors load and Excel import/export works. See the [Vite static deployment guide](https://vite.dev/guide/static-deploy) for hosting instructions.
 
@@ -311,4 +316,4 @@ The current version does not include automatic source-to-target matching, payloa
 
 ## License
 
-MapBridge is licensed under the [MIT License](LICENSE). You can use, change, and share it, including for commercial use, while keeping the license and copyright notice. Third-party libraries keep their own licenses; see [Third-party notices](public/THIRD_PARTY_NOTICES.txt).
+MaptelaBridge is licensed under the [MIT License](LICENSE). You can use, change, and share it, including for commercial use, while keeping the license and copyright notice. Third-party libraries keep their own licenses; see [Third-party notices](public/THIRD_PARTY_NOTICES.txt).
