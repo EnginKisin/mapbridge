@@ -21,7 +21,7 @@ interface Props {
 export const PayloadEditor = memo(function PayloadEditor({ side, payload, theme, expanded, onChange, onExpand, onNotify, onConfirm, onFocus, formatRef }: Props) {
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
-  const [wrap, setWrap] = useState(false)
+  const [wrap, setWrap] = useState(true)
   const [copied, setCopied] = useState(false)
   const [validation, setValidation] = useState(() => validatePayload(payload.content, payload.format))
   const [cursor, setCursor] = useState({ line: 1, column: 1 })

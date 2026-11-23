@@ -214,7 +214,7 @@ test('invalid input, safe XML/IDoc formatting, file upload and destructive confi
   await page.getByRole('button', { name: 'Continue', exact: true }).click()
   await expect(page.locator('.source .validation')).toContainText('Valid JSON')
   await page.getByRole('button', { name: 'Toggle source word wrap' }).click()
-  await expect(page.getByRole('button', { name: 'Toggle source word wrap' })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByRole('button', { name: 'Toggle source word wrap' })).toHaveAttribute('aria-pressed', 'false')
   await page.getByLabel('target payload format').selectOption('IDoc XML')
   const mixed = '<IDOC><E1EDP01>Ürün <MATNR>42</MATNR> son</E1EDP01></IDOC>'
   await replacePayload(page, 'target', mixed)

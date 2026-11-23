@@ -18,7 +18,7 @@ MaptelaBridge is an analysis and documentation tool. It does not send API reques
 - **Mapping review:** Mark each mapping as Draft, Needs clarification, or Completed; filter by review status and save the states in Excel.
 - **Analysis report:** Preview the complete integration analysis and print or save a PDF with integration details, mappings, review states, notes, and both payloads.
 - **Supported formats:** JSON, XML, SAP IDoc XML, Plain Text, and SQL.
-- **Editor tools:** Syntax highlighting, line numbers, folding, find/replace, word wrap, copy, file loading, and formatting.
+- **Editor tools:** Syntax highlighting, line numbers, folding, find/replace, word wrap, copy, file loading, and formatting. Word wrap is enabled by default in both editors, so long lines fit the editor width without changing the payload. Use the word wrap icon to turn it off or back on.
 - **Compact layout:** Resize the editors, change the height of the analysis panel, hide the bottom panel, or expand one editor.
 - **Field Mapping:** Add, edit, delete, filter, and reorder rows. Set transformation rules, required fields, default values, and descriptions.
 - **Field discovery and matching:** Find fields in JSON/XML/IDoc payloads, select a source and target to create one mapping row, or add fields on one side individually or in a group.
