@@ -1,3 +1,4 @@
+import { findJsonErrorOffset } from './jsonLocation'
 import type { PayloadFormat } from '../../models/workspace'
 
 export interface ValidationResult { state: 'valid' | 'invalid' | 'empty' | 'text'; message: string; line?: number; column?: number }
@@ -17,10 +18,10 @@ export function validatePayload(content: string, format: PayloadFormat): Validat
     return { state: 'valid', message: `Valid ${format}` }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Invalid payload'
-    const location = /line (\d+) column (\d+)/i.exec(message)
+    const location = /line\s+(\d+)\s+(?:at\s+)?column\s+(\d+)/i.exec(message) || /^(\d+):(\d+):/.exec(message)
     const position = /position (\d+)/i.exec(message)
-    const offset = position ? Number(position[1]) : undefined
-    const lines = offset !== undefined ? content.slice(0, offset).split('\n') : undefined
+    const offset = position ? Number(position[1]) : format === 'JSON' && !location ? findJsonErrorOffset(content) : undefined
+    const lines = offset !== undefined ? content.slice(0, offset).split(/\r\n|\r|\n/) : undefined
     return { state: 'invalid', message, line: location ? +location[1] : lines?.length ?? 1, column: location ? +location[2] : lines ? lines[lines.length - 1].length + 1 : 1 }
   }
 }

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { ArrowDownToLine, ArrowRight, Braces, Check, ChevronDown, ChevronUp, CircleHelp, Columns2, Download, Ellipsis, ExternalLink, FilePlus2, FileSpreadsheet, FileText, Github, GripHorizontal, Keyboard, LoaderCircle, MessageSquare, Moon, PanelBottomClose, PanelBottomOpen, Plus, Rows3, ShieldCheck, StickyNote, Sun, Trash2, Upload, X } from 'lucide-react'
 import { blankWorkspace, hasWork, sampleWorkspace } from './models/workspace'
 import type { Payload, Side, Workspace } from './models/workspace'
+import type { FieldNavigationRequest } from './services/navigation/fields'
 import { PayloadEditor } from './components/editor/PayloadEditor'
 import { MappingTable } from './components/mapping/MappingTable'
 import { AnalysisNotes } from './components/notes/AnalysisNotes'
@@ -28,6 +29,9 @@ export default function App() {
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null)
   const [help, setHelp] = useState(false)
   const [report, setReport] = useState<Workspace | null>(null)
+  const [editorSession, setEditorSession] = useState(0)
+  const [navigationRequests, setNavigationRequests] = useState<Partial<Record<Side, FieldNavigationRequest>>>({})
+  const navigationId = useRef(0)
   const workspaceRef = useRef(workspace)
   workspaceRef.current = workspace
   const fileRef = useRef<HTMLInputElement>(null)
@@ -49,13 +53,19 @@ export default function App() {
   const focusEditor = useCallback((side: Side) => { activeEditor.current = side }, [])
   const getActiveSide = useCallback(() => activeEditor.current, [])
   const changeMappings = useCallback((mappings: Workspace['mappings']) => change(current => ({ ...current, mappings })), [change])
+  const locateField = useCallback((side: Side, path: string) => {
+    setExpanded(null)
+    const request = { id: ++navigationId.current, path }
+    setNavigationRequests(current => ({ ...current, [side]: request }))
+  }, [])
+  const resetEditorSession = () => { setEditorSession(value => value + 1); setNavigationRequests({}) }
   const clear = (kind: 'new' | 'clear') => {
     if (menuRef.current) menuRef.current.open = false
-    const action = () => { setWorkspace(blankWorkspace()); setDirty(false); setSample(false); setExpanded(null); notify(kind === 'new' ? 'New workspace is ready.' : 'Workspace cleared.') }
+    const action = () => { setWorkspace(blankWorkspace()); resetEditorSession(); setDirty(false); setSample(false); setExpanded(null); notify(kind === 'new' ? 'New workspace is ready.' : 'Workspace cleared.') }
     if (hasWork(workspaceRef.current)) confirm(kind === 'new' ? 'Start a new workspace?' : 'Clear workspace?', 'Your current analysis will be removed. Export Excel first if you want to keep a copy.', action); else action()
   }
   const clearSample = () => {
-    setWorkspace(blankWorkspace()); setSample(false); setDirty(false)
+    setWorkspace(blankWorkspace()); resetEditorSession(); setSample(false); setDirty(false)
     notify('Sample data cleared. Your workspace is ready.')
   }
   const doExport = useCallback(async () => {
@@ -81,7 +91,7 @@ export default function App() {
     busyRef.current = true; setBusy('import')
     try {
       const loaded = await importExcel(await file.arrayBuffer())
-      const apply = () => { setWorkspace(loaded); setDirty(false); setSample(false); notify('Workspace restored from Excel.') }
+      const apply = () => { setWorkspace(loaded); resetEditorSession(); setDirty(false); setSample(false); notify('Workspace restored from Excel.') }
       if (hasWork(workspaceRef.current)) confirm('Replace current workspace?', `${file.name} is valid and ready. Importing replaces both payloads, mappings, notes, and integration details.`, apply)
       else apply()
     } catch (error) { notify(error instanceof Error ? error.message : 'Excel import failed.', true) }
@@ -125,11 +135,11 @@ export default function App() {
         <div className="workspace-strip"><div className="flow-breadcrumb"><Braces /><span className="muted">Workspace</span><span className="slash">/</span><span className="source-label">{workspace.source.system || 'Source'}</span><ArrowRight /><span className="target-label">{workspace.target.system || 'Target'}</span></div><div className="strip-right">{sample && <button className="sample-tag" onClick={clearSample} title="Clear sample workspace">Sample data<X /></button>}<span className="local-badge"><ShieldCheck />Local only</span><IconButton label={bottomOpen ? 'Hide bottom panel' : 'Show bottom panel'} onClick={() => { setBottomOpen(value => !value); setExpanded(null) }}>{bottomOpen ? <PanelBottomClose /> : <PanelBottomOpen />}</IconButton></div></div>
         <div className={`workbench ${horizontal.dragging || vertical.dragging ? 'is-resizing' : ''}`} ref={vertical.containerRef} style={{ gridTemplateRows: bottomOpen && !expanded ? `${vertical.ratio}fr 6px ${100 - vertical.ratio}fr` : 'minmax(0, 1fr)' }}>
           <div className={`editor-pair ${expanded ? `expanded-${expanded}` : ''}`} ref={horizontal.containerRef} style={{ gridTemplateColumns: expanded ? 'minmax(0, 1fr)' : `${horizontal.ratio}fr 6px ${100 - horizontal.ratio}fr` }}>
-            <div className={`editor-slot ${expanded === 'target' ? 'hidden-slot' : ''}`}><PayloadEditor side="source" payload={workspace.source} theme={theme} expanded={expanded === 'source'} onChange={changeSource} onExpand={() => setExpanded(value => value === 'source' ? null : 'source')} onNotify={notify} onConfirm={confirm} onFocus={focusEditor} formatRef={formatRef} /></div>
+            <div className={`editor-slot ${expanded === 'target' ? 'hidden-slot' : ''}`}><PayloadEditor side="source" payload={workspace.source} theme={theme} expanded={expanded === 'source'} onChange={changeSource} onExpand={() => setExpanded(value => value === 'source' ? null : 'source')} onNotify={notify} onConfirm={confirm} onFocus={focusEditor} formatRef={formatRef} discovery={sourceFields} navigationRequest={navigationRequests.source} session={editorSession} /></div>
             {!expanded && <div className="splitter vertical-splitter" aria-label="Resize source and target editors" {...horizontal.separatorProps}><span /></div>}
-            <div className={`editor-slot ${expanded === 'source' ? 'hidden-slot' : ''}`}><PayloadEditor side="target" payload={workspace.target} theme={theme} expanded={expanded === 'target'} onChange={changeTarget} onExpand={() => setExpanded(value => value === 'target' ? null : 'target')} onNotify={notify} onConfirm={confirm} onFocus={focusEditor} formatRef={formatRef} /></div>
+            <div className={`editor-slot ${expanded === 'source' ? 'hidden-slot' : ''}`}><PayloadEditor side="target" payload={workspace.target} theme={theme} expanded={expanded === 'target'} onChange={changeTarget} onExpand={() => setExpanded(value => value === 'target' ? null : 'target')} onNotify={notify} onConfirm={confirm} onFocus={focusEditor} formatRef={formatRef} discovery={targetFields} navigationRequest={navigationRequests.target} session={editorSession} /></div>
           </div>
-          {bottomOpen && !expanded && <><div className="splitter horizontal-splitter" aria-label="Resize editors and analysis panel" {...vertical.separatorProps}><GripHorizontal /></div><section className="bottom-panel" aria-label="Analysis panel"><div className="bottom-tabs"><div role="tablist" aria-label="Analysis tabs"><button role="tab" id="mapping-tab" aria-controls="mapping-panel" aria-selected={tab === 'mapping'} onClick={() => setTab('mapping')}><Rows3 />Field Mapping<span className="count-badge">{workspace.mappings.length}</span></button><button role="tab" id="notes-tab" aria-controls="notes-panel" aria-selected={tab === 'notes'} onClick={() => setTab('notes')}><StickyNote />Analysis Notes{workspace.notes && <span className="note-dot" />}</button></div><div className="bottom-panel-tools"><IconButton label="Minimize analysis panel" onClick={() => setBottomOpen(false)}><ChevronDown /></IconButton></div></div><div className="tab-content" role="tabpanel" id={tab === 'mapping' ? 'mapping-panel' : 'notes-panel'} aria-labelledby={tab === 'mapping' ? 'mapping-tab' : 'notes-tab'}>{tab === 'mapping' ? <MappingTable rows={workspace.mappings} discoveries={{ source: sourceFields, target: targetFields }} getActiveSide={getActiveSide} onChange={changeMappings} /> : <AnalysisNotes value={workspace.notes} onChange={notes => change(current => ({ ...current, notes }))} />}</div></section></>}
+          {bottomOpen && !expanded && <><div className="splitter horizontal-splitter" aria-label="Resize editors and analysis panel" {...vertical.separatorProps}><GripHorizontal /></div><section className="bottom-panel" aria-label="Analysis panel"><div className="bottom-tabs"><div role="tablist" aria-label="Analysis tabs"><button role="tab" id="mapping-tab" aria-controls="mapping-panel" aria-selected={tab === 'mapping'} onClick={() => setTab('mapping')}><Rows3 />Field Mapping<span className="count-badge">{workspace.mappings.length}</span></button><button role="tab" id="notes-tab" aria-controls="notes-panel" aria-selected={tab === 'notes'} onClick={() => setTab('notes')}><StickyNote />Analysis Notes{workspace.notes && <span className="note-dot" />}</button></div><div className="bottom-panel-tools"><IconButton label="Minimize analysis panel" onClick={() => setBottomOpen(false)}><ChevronDown /></IconButton></div></div><div className="tab-content" role="tabpanel" id={tab === 'mapping' ? 'mapping-panel' : 'notes-panel'} aria-labelledby={tab === 'mapping' ? 'mapping-tab' : 'notes-tab'}>{tab === 'mapping' ? <MappingTable rows={workspace.mappings} discoveries={{ source: sourceFields, target: targetFields }} getActiveSide={getActiveSide} onChange={changeMappings} onLocate={locateField} /> : <AnalysisNotes value={workspace.notes} onChange={notes => change(current => ({ ...current, notes }))} />}</div></section></>}
         </div>
         {(!bottomOpen || expanded) && <button className="restore-panel" onClick={() => { setExpanded(null); setBottomOpen(true) }}><ChevronUp /><Rows3 />Field Mapping<span>{workspace.mappings.length}</span><StickyNote />Analysis Notes<Plus /></button>}
       </main>
@@ -142,6 +152,7 @@ export default function App() {
       <p>Compare payloads, document mappings, and export your entire analysis in one Excel file. Import that file to continue later.</p>
       <div className="help-shortcuts"><span>Format active editor</span><kbd>Ctrl / ⌘ + Enter</kbd><span>Export workspace</span><kbd>Ctrl / ⌘ + S</kbd><span>Find in editor</span><kbd>Ctrl / ⌘ + F</kbd><span>Replace in editor (Windows / Linux)</span><kbd>Ctrl + H</kbd><span>Replace in editor (Mac)</span><kbd>⌘ + Option + F</kbd><span>Close a dialog</span><kbd>Esc</kbd></div>
       <p>Drag the dividers to resize panels. Double-click a divider to reset it, or use arrow keys when focused. Double-click a mapping text cell for expanded editing.</p>
+      <p>Copy the field path above an editor or use a mapping’s crosshair to locate its field. Click an invalid-payload message to go to the error. Use the bookmark button or Ctrl / ⌘ + F2 to mark a line; F2 and Shift + F2 cycle through bookmarks. Bookmarks are temporary and are cleared when a payload is replaced or a workspace is opened.</p>
       <p>Use Review Status to mark mappings as Draft, Needs clarification, or Completed and filter your review list. Open Workspace options → Analysis report / PDF to preview all mappings, notes, and payloads, then print or save as PDF. Excel keeps the editable workspace, including review states.</p>
       <p className="privacy-note"><ShieldCheck />Everything runs in your browser. No accounts, uploads to servers, analytics, or browser storage. Refreshing closes unsaved work; export Excel to keep it.</p>
       <div className="help-about"><span>Created by EnginKisin</span><nav aria-label="Project links">

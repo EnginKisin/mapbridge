@@ -1,8 +1,10 @@
 import type { PayloadFormat } from '../../models/workspace'
+import type { FieldIndex } from '../navigation/fields'
 
 export type FieldKind = 'string' | 'number' | 'boolean' | 'null' | 'object' | 'array' | 'element' | 'attribute'
 export interface DiscoveredField { path: string; kind: FieldKind }
 export interface FieldDiscovery {
+  navigation?: FieldIndex
   state: 'pending' | 'ready' | 'empty' | 'invalid' | 'unsupported' | 'limited'
   format: PayloadFormat
   fields: DiscoveredField[]

@@ -1,5 +1,5 @@
 import { memo, useMemo, useState } from 'react'
-import { ArrowDown, ArrowUp, ChevronDown, CopyPlus, LoaderCircle, Plus, Rows3, ScanSearch, Trash2, TriangleAlert } from 'lucide-react'
+import { ArrowDown, ArrowUp, ChevronDown, CopyPlus, Crosshair, LoaderCircle, Plus, Rows3, ScanSearch, Trash2, TriangleAlert } from 'lucide-react'
 import type { MappingRow, ReviewStatus, Side } from '../../models/workspace'
 import { newMapping, reviewStatuses, rules } from '../../models/workspace'
 import { IconButton } from '../layout/IconButton'
@@ -8,8 +8,8 @@ import { DiscoveredFields } from './DiscoveredFields'
 import type { FieldDiscovery } from '../../services/discovery/types'
 import { addDiscoveredFields, fieldPresence, matchDiscoveredFields, unmappedFields } from '../../services/discovery/reconcile'
 
-interface Props { rows: MappingRow[]; discoveries: Record<Side, FieldDiscovery>; getActiveSide: () => Side; onChange: (rows: MappingRow[]) => void }
-export const MappingTable = memo(function MappingTable({ rows, discoveries, getActiveSide, onChange }: Props) {
+interface Props { rows: MappingRow[]; discoveries: Record<Side, FieldDiscovery>; getActiveSide: () => Side; onChange: (rows: MappingRow[]) => void; onLocate: (side: Side, path: string) => void }
+export const MappingTable = memo(function MappingTable({ rows, discoveries, getActiveSide, onChange, onLocate }: Props) {
   const [search, setSearch] = useState('')
   const [onlyMissing, setOnlyMissing] = useState(false)
   const [reviewFilter, setReviewFilter] = useState<ReviewStatus | ''>('')
@@ -56,7 +56,7 @@ export const MappingTable = memo(function MappingTable({ rows, discoveries, getA
           <td className="row-number">{String(index + 1).padStart(2, '0')}</td>
           {(['source', 'target'] as const).map(key => {
             const missing = (key === 'source' ? source : target) === 'missing'
-            return <td key={key}><div className={`path-cell-wrap ${missing ? 'is-missing' : ''}`}><input className="path-cell" aria-label={`${key} field ${index + 1}`} aria-invalid={missing || undefined} placeholder={key === 'source' ? 'source.field' : 'target.field'} title={`${row[key]}\n${missing ? 'Not found in the current payload. Mapping retained.\n' : ''}Double-click to expand`} value={row[key]} onChange={event => update(row.id, { [key]: event.target.value })} onDoubleClick={() => setEditing({ id: row.id, key, draft: row[key] })} />{missing && <span className="field-missing" role="img" aria-label={`${key === 'source' ? 'Source' : 'Target'} field not found: ${row[key]}`} title="Not found in the current payload. Your mapping is retained."><TriangleAlert aria-hidden="true" /></span>}</div></td>
+            return <td key={key}><div className={`path-cell-wrap ${missing ? 'is-missing' : ''}`}><input className="path-cell" aria-label={`${key} field ${index + 1}`} aria-invalid={missing || undefined} placeholder={key === 'source' ? 'source.field' : 'target.field'} title={`${row[key]}\n${missing ? 'Not found in the current payload. Mapping retained.\n' : ''}Double-click to expand`} value={row[key]} onChange={event => update(row.id, { [key]: event.target.value })} onDoubleClick={() => setEditing({ id: row.id, key, draft: row[key] })} />{missing && <span className="field-missing" role="img" aria-label={`${key === 'source' ? 'Source' : 'Target'} field not found: ${row[key]}`} title="Not found in the current payload. Your mapping is retained."><TriangleAlert aria-hidden="true" /></span>}<button type="button" className="locate-field" aria-label={`Locate ${key} field ${index + 1}`} title={`Locate ${row[key] || key + " field"} in the ${key} payload`} disabled={!row[key].trim() || discoveries[key].state === "unsupported"} onClick={() => onLocate(key, row[key])}><Crosshair /></button></div></td>
           })}
           <td><div className={`rule-select rule-${row.rule.toLowerCase()}`}><select aria-label={`Transformation rule ${index + 1}`} value={row.rule} onChange={event => update(row.id, { rule: event.target.value as MappingRow['rule'] })}>{rules.map(rule => <option key={rule}>{rule}</option>)}</select><ChevronDown /></div></td>
           <td><select className="review-status" data-status={row.reviewStatus} aria-label={`Review status ${index + 1}`} value={row.reviewStatus} onChange={event => update(row.id, { reviewStatus: event.target.value as ReviewStatus })}>{reviewStatuses.map(value => <option key={value}>{value}</option>)}</select></td>

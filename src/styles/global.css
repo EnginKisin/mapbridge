@@ -119,6 +119,23 @@ button { display: inline-flex; align-items: center; justify-content: center; gap
 .validation.valid { color: var(--success); }
 .validation.invalid { color: var(--error); }
 .cursor-position { color: var(--muted); }
+.editor-navigation { height: 27px; flex-shrink: 0; display: flex; align-items: center; gap: 5px; padding: 0 6px 0 10px; border-bottom: 1px solid var(--subtle-border); background: var(--editor); font-size: 10px; color: var(--muted); min-width: 0; }
+.field-path-copy { display: flex; gap: 5px; justify-content: flex-start; min-width: 0; flex: 1; border: 0; padding: 0; height: 24px; background: transparent; color: var(--source); }
+.target .field-path-copy:not(:disabled) { color: var(--target); }
+.field-path-copy:disabled { opacity: 1; color: var(--dim); }
+.field-path-copy:hover:not(:disabled) { text-decoration: underline; }
+.field-path-copy code { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 10px; }
+.field-path-copy svg { width: 12px; height: 12px; }
+.editor-bookmarks, .editor-match-controls { display: flex; align-items: center; gap: 1px; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.editor-match-controls { border-right: 1px solid var(--border); padding-right: 5px; }
+.editor-navigation .icon-button { width: 23px; height: 23px; padding: 4px; }
+.editor-navigation .icon-button[aria-pressed='true'] { color: var(--source); background: var(--hover); }
+.editor-navigation svg { width: 13px; height: 13px; }
+.monaco-editor .payload-bookmark { margin-left: 1px; width: 8px !important; background: var(--source); clip-path: polygon(10% 15%, 90% 15%, 90% 85%, 50% 65%, 10% 85%); cursor: pointer; }
+.monaco-editor .payload-bookmark-number { color: var(--source) !important; font-weight: 700; }
+.monaco-editor .payload-field-match { background: color-mix(in srgb, var(--accent) 35%, transparent); outline: 1px solid var(--success); border-radius: 2px; }
+.validation-link { border: 0; background: transparent; padding: 0; height: 23px; font-size: inherit; justify-content: flex-start; text-align: left; }
+.validation-link:hover { text-decoration: underline; }
 .splitter { background: var(--bg); position: relative; touch-action: none; z-index: 3; display: flex; align-items: center; justify-content: center; }
 .splitter:hover, .splitter:focus-visible { background: color-mix(in srgb, var(--source) 22%, var(--bg)); }
 .vertical-splitter { cursor: col-resize; border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
@@ -162,7 +179,12 @@ button { display: inline-flex; align-items: center; justify-content: center; gap
 .mapping-table td:nth-child(3) .path-cell { color: var(--target); }
 .path-cell-wrap { position: relative; width: 100%; }
 .path-cell-wrap.is-missing { box-shadow: inset 2px 0 #d7a45b; background: #d7a45b08; }
-.mapping-table .path-cell-wrap.is-missing > input { padding-right: 29px; }
+.mapping-table .path-cell-wrap > input { padding-right: 31px; }
+.mapping-table .path-cell-wrap.is-missing > input { padding-right: 52px; }
+.path-cell-wrap .field-missing { right: 27px; }
+.locate-field { position: absolute; top: 6px; right: 4px; width: 22px; height: 22px; border: 0; border-radius: 3px; padding: 4px; background: transparent; color: var(--muted); }
+.locate-field svg { width: 13px; height: 13px; }
+.locate-field:hover:not(:disabled) { background: var(--hover); color: var(--source); }
 .field-missing { position: absolute; top: 9px; right: 8px; color: #d7a45b; display: flex; }
 .field-missing svg { width: 13px; height: 13px; }
 .mapping-discovery-summary { display: flex; align-items: center; gap: 8px; min-width: 0; }

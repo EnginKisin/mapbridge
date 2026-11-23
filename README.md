@@ -118,6 +118,18 @@ On Mac, `⌘` means Command. Find and replace apply to the focused payload edito
 
 The help window also includes a **GitHub** link to the source code and **Feedback / Report an issue** to submit bugs or feature requests through GitHub Issues. Both links open in a new tab.
 
+### Finding fields, errors, and bookmarks
+
+A compact bar above each editor shows the field path at the cursor for JSON, XML, and IDoc XML. Click the path to copy it. JSON paths include the current array index (for example, `items[1].id`); XML paths retain namespace prefixes and use `@` for attributes. SQL and plain text support bookmarks but do not have structural field paths.
+
+Use the crosshair beside a Source Field or Target Field in the mapping table to locate and highlight it in the corresponding payload. JSON `[]` paths can match multiple array items; repeated XML elements can also have multiple matches. Use the previous/next occurrence buttons to cycle through them. Invalid payloads must be fixed before structural navigation is available. Field indexing runs with discovery in a local worker and is bounded to 20 million characters, 50,000 locations, 128 levels of nesting, and 2,048 characters per field path; reaching a limit leaves manual editing available.
+
+Click an **Invalid JSON / XML** message below an editor to focus the reported error location.
+
+Use the bookmark button above an editor, or click an empty line-decoration area beside a line number, to toggle a temporary bookmark. Previous/next buttons cycle through bookmarks, and the clear button removes all bookmarks in that editor. Keyboard shortcuts while the editor is focused: **Ctrl / ⌘ + F2** toggles a bookmark, **F2** goes to the next, and **Shift + F2** goes to the previous. The editor context menu also includes these actions and **Copy field path**.
+
+Bookmarks move with their lines during edits. Replacing a whole payload, formatting it, importing Excel, or opening/clearing a workspace clears temporary bookmarks. Paths, highlights, and bookmarks do not modify payload text or mark the workspace as unsaved. Bookmarks and navigation state are not saved in Excel or PDF.
+
 ### Transformation rules
 
 The **Transformation Rule** column records how a source value should become a target value. These rules document the intended integration behavior; MaptelaBridge saves them in Excel without executing them or changing either payload. Use **Description** to explain the condition, lookup table, formula, or other details.

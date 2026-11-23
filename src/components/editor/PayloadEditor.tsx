@@ -1,13 +1,16 @@
 import { memo, useEffect, useRef, useState } from 'react'
 import Editor from '@monaco-editor/react'
 import type { OnMount } from '@monaco-editor/react'
-import { Check, CheckCheck, Copy, FileUp, Maximize2, Minimize2, TextSelect, Trash2, TriangleAlert, WrapText } from 'lucide-react'
+import { Bookmark, BookmarkCheck, Check, CheckCheck, ChevronLeft, ChevronRight, Copy, FileUp, Maximize2, Minimize2, TextSelect, Trash2, TriangleAlert, WrapText, X } from 'lucide-react'
 import { monaco } from './monaco'
 import type { Payload, Side } from '../../models/workspace'
 import { formats } from '../../models/workspace'
 import { validatePayload } from '../../services/validation/payload'
 import { formatPayload } from '../../services/formatting/format'
 import { IconButton } from '../layout/IconButton'
+import type { FieldDiscovery } from '../../services/discovery/types'
+import type { FieldNavigationRequest } from '../../services/navigation/fields'
+import { usePayloadNavigation } from './usePayloadNavigation'
 
 interface Props {
   side: Side; payload: Payload; theme: 'dark' | 'light'; expanded: boolean
@@ -17,8 +20,11 @@ interface Props {
   onConfirm: (title: string, description: string, action: () => void) => void
   onFocus: (side: Side) => void
   formatRef: React.RefObject<Partial<Record<Side, () => void>>>
+  discovery: FieldDiscovery
+  navigationRequest?: FieldNavigationRequest
+  session: number
 }
-export const PayloadEditor = memo(function PayloadEditor({ side, payload, theme, expanded, onChange, onExpand, onNotify, onConfirm, onFocus, formatRef }: Props) {
+export const PayloadEditor = memo(function PayloadEditor({ side, payload, theme, expanded, onChange, onExpand, onNotify, onConfirm, onFocus, formatRef, discovery, navigationRequest, session }: Props) {
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const [wrap, setWrap] = useState(true)
@@ -26,6 +32,7 @@ export const PayloadEditor = memo(function PayloadEditor({ side, payload, theme,
   const [validation, setValidation] = useState(() => validatePayload(payload.content, payload.format))
   const [cursor, setCursor] = useState({ line: 1, column: 1 })
   const [lineCount, setLineCount] = useState(1)
+  const navigation = usePayloadNavigation({ side, payload, discovery, request: navigationRequest, session, cursor, onNotify })
   const latest = useRef({ payload, onChange, onNotify, onFocus })
   latest.current = { payload, onChange, onNotify, onFocus }
   const format = () => {
@@ -54,11 +61,19 @@ export const PayloadEditor = memo(function PayloadEditor({ side, payload, theme,
   }, [validation])
   const mounted: OnMount = editor => {
     editorRef.current = editor
+    navigation.mount(editor)
     setLineCount(editor.getModel()?.getLineCount() || 1)
     editor.onDidChangeModelContent(() => setLineCount(editor.getModel()?.getLineCount() || 1))
     editor.onDidChangeCursorPosition(event => setCursor({ line: event.position.lineNumber, column: event.position.column }))
     editor.onDidFocusEditorText(() => latest.current.onFocus(side))
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => formatRef.current[side]?.())
+  }
+  const goToError = () => {
+    const current = validatePayload(latest.current.payload.content, latest.current.payload.format)
+    const editor = editorRef.current, model = editor?.getModel()
+    if (!editor || !model || current.state !== 'invalid') return
+    const position = model.validatePosition({ lineNumber: current.line || 1, column: current.column || 1 })
+    editor.setPosition(position); editor.revealPositionInCenter(position); editor.focus()
   }
   const language = payload.format === 'JSON' ? 'json' : payload.format === 'XML' || payload.format === 'IDoc XML' ? 'xml' : payload.format === 'SQL' ? 'sql' : 'plaintext'
   const upload = async (file?: File) => {
@@ -68,7 +83,7 @@ export const PayloadEditor = memo(function PayloadEditor({ side, payload, theme,
       const content = await file.text()
       const extension = file.name.split('.').pop()?.toLowerCase()
       const inferred = extension === 'json' ? 'JSON' : extension === 'xml' ? 'XML' : extension === 'sql' ? 'SQL' : undefined
-      const action = () => { onChange({ content, ...(inferred ? { format: inferred } : {}) }); onNotify(`${file.name} loaded.`) }
+      const action = () => { navigation.reset(); onChange({ content, ...(inferred ? { format: inferred } : {}) }); onNotify(`${file.name} loaded.`) }
       if (latest.current.payload.content) onConfirm('Replace payload?', `The current ${side} payload will be replaced by ${file.name}.`, action); else action()
     } catch { onNotify('Unable to read the payload file.', true) }
   }
@@ -89,12 +104,17 @@ export const PayloadEditor = memo(function PayloadEditor({ side, payload, theme,
       </div>
       <input ref={fileRef} data-testid={`${side}-file`} type="file" accept=".json,.xml,.txt,.sql,.idoc" hidden onChange={event => { void upload(event.target.files?.[0]); event.target.value = '' }} />
     </div>
+    <div className="editor-navigation" aria-label={`${side} editor navigation`}>
+      <button className="field-path-copy" aria-label={`Copy ${side} field path`} disabled={!navigation.path} title={navigation.path ? `${navigation.path}\nClick to copy field path` : discovery.state === 'pending' ? 'Scanning fields…' : payload.format === 'SQL' || payload.format === 'Plain Text' ? 'Field paths are available for JSON, XML, and IDoc XML.' : 'Place the cursor on a field to see its path.'} onClick={() => void navigation.copyPath()}><Copy /><code data-testid={`${side}-field-path`}>{navigation.path || (discovery.state === 'pending' ? 'Scanning fields…' : 'Field path')}</code></button>
+      {navigation.matchCount.total > 1 && <div className="editor-match-controls"><IconButton label={`Previous ${side} field occurrence`} onClick={() => navigation.stepMatch(-1)}><ChevronLeft /></IconButton><span aria-label={`${side} field occurrence`}>{navigation.matchCount.current}/{navigation.matchCount.total}</span><IconButton label={`Next ${side} field occurrence`} onClick={() => navigation.stepMatch(1)}><ChevronRight /></IconButton></div>}
+      <div className="editor-bookmarks"><IconButton label={`Toggle ${side} bookmark`} aria-pressed={navigation.bookmarks.includes(cursor.line)} onClick={navigation.toggleBookmark}>{navigation.bookmarks.includes(cursor.line) ? <BookmarkCheck /> : <Bookmark />}</IconButton>{navigation.bookmarks.length > 0 && <><span aria-label={`${side} bookmark count`}>{navigation.bookmarks.length}</span><IconButton label={`Previous ${side} bookmark`} onClick={() => navigation.stepBookmark(-1)}><ChevronLeft /></IconButton><IconButton label={`Next ${side} bookmark`} onClick={() => navigation.stepBookmark(1)}><ChevronRight /></IconButton><IconButton label={`Clear ${side} bookmarks`} onClick={navigation.clearBookmarks}><X /></IconButton></>}</div>
+    </div>
     <div className="monaco-container">
       <Editor language={language} value={payload.content} theme={`maptelabridge-${theme}`} onMount={mounted} onChange={content => onChange({ content: content ?? '' })} loading={<div className="editor-loading">Loading local editor…</div>}
         options={{ ariaLabel: `${side} payload`, fontSize: 12.5, fontFamily: '"SFMono-Regular", Consolas, "Liberation Mono", monospace', lineHeight: 21, minimap: { enabled: false }, automaticLayout: true, scrollBeyondLastLine: false, wordWrap: wrap ? 'on' : 'off', folding: true, showFoldingControls: 'mouseover', lineNumbersMinChars: 4, glyphMargin: false, padding: { top: 12, bottom: 12 }, tabSize: 2, insertSpaces: true, renderLineHighlight: 'line', overviewRulerBorder: false, hideCursorInOverviewRuler: true, scrollbar: { verticalScrollbarSize: 9, horizontalScrollbarSize: 9 }, fixedOverflowWidgets: true, stickyScroll: { enabled: false }, links: false, unicodeHighlight: { ambiguousCharacters: false }, bracketPairColorization: { enabled: false }, quickSuggestions: false }} />
     </div>
     <div className="editor-status">
-      <span className={`validation ${validation.state}`} title={validation.message}>{validation.state === 'invalid' ? <TriangleAlert /> : validation.state === 'valid' ? <Check /> : null}<span>{validation.state === 'invalid' ? `Invalid ${payload.format} · ${validation.message}` : validation.message}</span></span>
+      {validation.state === 'invalid' ? <button type="button" className="validation invalid validation-link" aria-label={`Go to ${side} error`} title={`${validation.message}\nClick to go to the error location`} onClick={goToError}><TriangleAlert /><span>{`Invalid ${payload.format} · ${validation.message}`}</span></button> : <span className={`validation ${validation.state}`} title={validation.message}>{validation.state === 'valid' ? <Check /> : null}<span>{validation.message}</span></span>}
       <span className="cursor-position">Ln {cursor.line}, Col {cursor.column}</span><span>{lineCount.toLocaleString()} lines</span><span>UTF-8</span>
     </div>
   </section>

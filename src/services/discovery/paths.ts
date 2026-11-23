@@ -5,7 +5,7 @@ export function appendKey(parent: string, key: string, xml = false): string {
   return simple.test(key) && (xml || key !== '$') ? `${parent ? `${parent}.` : ''}${key}` : `${parent}[${JSON.stringify(key)}]`
 }
 
-export function canonicalPath(path: string, format: PayloadFormat): string | null {
+export function canonicalPath(path: string, format: PayloadFormat, preserveIndexes = false): string | null {
   const xml = format === 'XML' || format === 'IDoc XML'
   let input = path.trim()
   if (!input) return null
@@ -25,7 +25,7 @@ export function canonicalPath(path: string, format: PayloadFormat): string | nul
       }
       const array = /^\[(?:\d+)?\]/.exec(rest)
       if (!array || expectKey && result) return null
-      if (!xml) result = `${result || '$'}[]`
+      if (!xml) result = `${result || '$'}[${preserveIndexes ? array[0].slice(1, -1) : ''}]`
       else if (!result) return null
       offset += array[0].length; expectKey = false; continue
     }
