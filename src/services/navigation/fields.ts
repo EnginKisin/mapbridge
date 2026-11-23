@@ -1,9 +1,14 @@
 import { SaxesParser } from 'saxes'
 import type { PayloadFormat } from '../../models/workspace'
 import { appendKey, canonicalPath } from '../discovery/paths'
+import type { FieldKind } from '../discovery/types'
 
 export interface FieldLocation {
   path: string
+  label: string
+  kind: FieldKind
+  valueStart?: number
+  preview?: string
   start: number
   end: number
   selectionStart: number
@@ -38,10 +43,12 @@ export function indexFields(content: string, format: PayloadFormat): FieldIndex 
         }
         return { start, end: offset }
       }
-      const value = (path: string, parent: number | null, depth: number, key?: { start: number; end: number }) => {
+      const value = (path: string, parent: number | null, depth: number, key?: { start: number; end: number }, label = path || '$') => {
         whitespace()
         const start = offset
-        const index = add({ path: path || '$', start: key?.start ?? start, end: content.length, selectionStart: key?.start ?? start, selectionEnd: key?.end ?? start + 1, parent }, depth)
+        const char = content[start]
+        const kind: FieldKind = char === '{' ? 'object' : char === '[' ? 'array' : char === '"' ? 'string' : char === 'n' ? 'null' : char === 't' || char === 'f' ? 'boolean' : 'number'
+        const index = add({ path: path || '$', label, kind, valueStart: start, start: key?.start ?? start, end: content.length, selectionStart: key?.start ?? start, selectionEnd: key?.end ?? start + 1, parent }, depth)
         if (content[offset] === '{') {
           offset++; whitespace()
           if (content[offset] !== '}') {
@@ -50,7 +57,7 @@ export function indexFields(content: string, format: PayloadFormat): FieldIndex 
               const key = string()
               const name: string = JSON.parse(content.slice(key.start, key.end))
               whitespace(); offset++ // colon; the document was validated above
-              value(appendKey(path, name), index, depth + 1, key)
+              value(appendKey(path, name), index, depth + 1, key, name)
               whitespace()
               if (content[offset] !== ',') break
               offset++
@@ -62,7 +69,7 @@ export function indexFields(content: string, format: PayloadFormat): FieldIndex 
           let item = 0
           if (content[offset] !== ']') {
             do {
-              value(`${path || '$'}[${item++}]`, index, depth + 1)
+              value(`${path || '$'}[${item}]`, index, depth + 1, undefined, `[${item++}]`)
               whitespace()
               if (content[offset] !== ',') break
               offset++
@@ -85,16 +92,25 @@ export function indexFields(content: string, format: PayloadFormat): FieldIndex 
       parser.on('opentag', tag => {
         const parent = stack[stack.length - 1] ?? null
         const path = appendKey(parent === null ? '' : locations[parent].path, tag.name, true)
-        const index = add({ path, start: tagStart, end: content.length, selectionStart: tagStart + 1, selectionEnd: tagStart + 1 + tag.name.length, parent }, stack.length)
+        const index = add({ path, label: tag.name, kind: 'element', start: tagStart, end: content.length, selectionStart: tagStart + 1, selectionEnd: tagStart + 1 + tag.name.length, parent }, stack.length)
         const attributes = content.slice(tagStart + 1 + tag.name.length, parser.position)
         for (const match of attributes.matchAll(/([^\s=<>/]+)\s*=\s*(?:"[^"]*"|'[^']*')/gu)) {
           const name = match[1]
           if (name === 'xmlns' || name.startsWith('xmlns:')) continue
           const start = tagStart + 1 + tag.name.length + match.index
-          add({ path: appendKey(path, `@${name}`, true), start, end: start + match[0].length, selectionStart: start, selectionEnd: start + name.length, parent: index }, stack.length + 1)
+          const rawValue = match[0].slice(match[0].indexOf('=') + 1).trim()
+          add({ path: appendKey(path, `@${name}`, true), label: `@${name}`, kind: 'attribute', preview: rawValue.slice(1, -1).slice(0, 161), start, end: start + match[0].length, selectionStart: start, selectionEnd: start + name.length, parent: index }, stack.length + 1)
         }
         stack.push(index)
       })
+      const text = (value: string) => {
+        const current = stack[stack.length - 1]
+        if (current === undefined) return
+        const previous = locations[current].preview || ''
+        if (previous.length < 161) locations[current].preview = previous + value.replace(/\s+/g, ' ').slice(0, 161 - previous.length)
+      }
+      parser.on('text', text)
+      parser.on('cdata', text)
       parser.on('closetag', () => { locations[stack.pop()!].end = parser.position })
       parser.write(content).close()
     }

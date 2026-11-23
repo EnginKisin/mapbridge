@@ -110,7 +110,14 @@ button { display: inline-flex; align-items: center; justify-content: center; gap
 .editor-actions { margin-left: auto; display: flex; align-items: center; gap: 1px; }
 .editor-actions .icon-button { width: 24px; height: 24px; }
 .editor-actions svg { width: 14px; height: 14px; }
-.monaco-container { flex: 1; min-height: 0; min-width: 0; overflow: hidden; }
+.payload-view { flex: 1; min-height: 0; min-width: 0; position: relative; overflow: hidden; }
+.monaco-container { position: absolute; inset: 0; min-height: 0; min-width: 0; overflow: hidden; }
+.editor-code-hidden { visibility: hidden; pointer-events: none; }
+.panel-caption-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; min-width: 0; }
+.panel-caption-actions .caption-meta { margin-left: 0; }
+.payload-download { display: inline-flex; align-items: center; gap: 4px; height: 21px; padding: 0 6px; border: 1px solid var(--border); border-radius: 4px; background: var(--raised); color: var(--text); font-size: 10px; white-space: nowrap; }
+.payload-download:hover:not(:disabled) { background: var(--hover); color: var(--strong); }
+.payload-download svg { width: 12px; height: 12px; }
 .editor-loading { height: 100%; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 12px; }
 .editor-status { height: 25px; flex-shrink: 0; border-top: 1px solid var(--subtle-border); display: flex; align-items: center; gap: 12px; padding: 0 10px; font-size: 10px; color: var(--dim); background: var(--editor); white-space: nowrap; }
 .validation { min-width: 0; display: flex; align-items: center; gap: 4px; margin-right: auto; overflow: hidden; }
@@ -283,6 +290,40 @@ option { background: var(--raised); color: var(--text); }
 .modal-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 20px; }
 .cell-modal { width: 650px; }
 .cell-modal > textarea { width: 100%; height: 230px; padding: 10px; resize: vertical; font-size: 12px; line-height: 1.7; }
+.payload-tree-inline { position: absolute; inset: 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; padding: 6px; background: var(--editor); }
+.tree-toolbar { display: flex; align-items: center; gap: 4px; margin-bottom: 6px; flex-shrink: 0; font-size: 10px; }
+.tree-toolbar .tree-search { flex: 1; min-width: 70px; font-size: 11px; height: 25px; }
+.tree-toolbar > span { color: var(--muted); white-space: nowrap; min-width: 52px; text-align: right; margin: 0 3px; }
+.payload-tree-inline .icon-button { width: 23px; height: 23px; padding: 4px; }
+.payload-tree-inline .icon-button svg { width: 13px; height: 13px; }
+.payload-tree-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
+.payload-tree-body.with-details { grid-template-rows: minmax(0, 1fr) minmax(0, .7fr); }
+.payload-tree-list { overflow: auto; border: 1px solid var(--border); border-radius: 4px; background: var(--editor); min-width: 0; min-height: 0; }
+.payload-tree-row { height: 30px; display: flex; align-items: center; gap: 7px; padding-right: 9px; cursor: pointer; border-bottom: 1px solid var(--subtle-border); font-size: 11px; white-space: nowrap; }
+.payload-tree-row:hover { background: var(--hover); }
+.payload-tree-row.is-selected { background: color-mix(in srgb, var(--source) 12%, var(--editor)); box-shadow: inset 2px 0 var(--source); }
+.payload-tree-list:focus-visible .payload-tree-row.is-selected { outline: 1px solid var(--source); outline-offset: -1px; }
+.tree-expander, .tree-expander-placeholder { width: 16px; height: 22px; flex-shrink: 0; }
+.tree-expander { border: 0; background: transparent; padding: 0; color: var(--muted); }
+.tree-expander svg { width: 13px; height: 13px; }
+.tree-node-label { max-width: 47%; overflow: hidden; text-overflow: ellipsis; flex-shrink: 1; color: var(--strong); font-family: 'SFMono-Regular', Consolas, monospace; }
+.tree-node-label small { color: var(--dim); font-size: 10px; }
+.tree-node-kind { flex-shrink: 0; color: var(--muted); font-size: 9px; padding: 1px 4px; background: var(--raised); border: 1px solid var(--border); border-radius: 3px; }
+.tree-node-preview { min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--muted); }
+.payload-tree-details { min-width: 0; min-height: 0; display: flex; flex-direction: column; padding: 7px; border: 1px solid var(--border); border-radius: 4px; background: var(--editor); }
+.payload-tree-details h3 { color: var(--muted); font-size: 10px; margin: 0 0 5px; font-weight: 500; }
+.payload-tree-details pre { flex: 1; min-height: 0; margin: 0; padding: 6px; border: 1px solid var(--subtle-border); border-radius: 3px; background: var(--surface); white-space: pre-wrap; overflow-wrap: anywhere; overflow: auto; font: 11px/1.5 Consolas, monospace; }
+.payload-tree-details .tree-fragment-note { font-size: 9px; line-height: 1.5; margin: 4px 0 0; color: var(--muted); }
+.tree-empty { color: var(--muted); text-align: center; padding: 18px 10px; font-size: 11px; }
+.tree-unavailable { flex: 1; display: flex; align-items: center; justify-content: center; border: 1px dashed var(--border); border-radius: 4px; }
+.tree-footer { display: flex; justify-content: space-between; align-items: center; gap: 6px; margin-top: 6px; flex-shrink: 0; }
+.tree-footer > div { display: flex; align-items: center; gap: 5px; }
+.tree-footer .button { height: 25px; padding: 0 6px; font-size: 10px; }
+.tree-footer .button svg { width: 12px; height: 12px; }
+.tree-footer .tree-selected-path { min-width: 0; flex: 1; }
+.tree-selected-path code { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 10px; color: var(--source); }
+.tree-copy-error { font-size: 10px; color: var(--error); margin: 4px 0 0; }
+@container (min-width: 750px) { .payload-tree-body.with-details { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); } }
 .help-modal { max-height: calc(100dvh - 40px); overflow-y: auto; }
 .help-shortcuts { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 10px; padding: 14px 0; margin: 12px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); font-size: 11px; }
 .help-about { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }

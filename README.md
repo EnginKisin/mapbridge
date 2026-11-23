@@ -19,6 +19,8 @@ MaptelaBridge is an analysis and documentation tool. It does not send API reques
 - **Analysis report:** Preview the complete integration analysis and print or save a PDF with integration details, mappings, review states, notes, and both payloads.
 - **Supported formats:** JSON, XML, SAP IDoc XML, Plain Text, and SQL.
 - **Editor tools:** Syntax highlighting, line numbers, folding, find/replace, word wrap, copy, file loading, and formatting. Word wrap is enabled by default in both editors, so long lines fit the editor width without changing the payload. Use the word wrap icon to turn it off or back on.
+- **Raw payload downloads:** Download source and target as `.json`, `.xml`, `.sql`, or `.txt` files in UTF-8, preserving the current text.
+- **Payload tree:** Inspect JSON, XML, and IDoc XML fields, types, and value previews in a searchable tree. Open the selected node in the existing editor.
 - **Compact layout:** Resize the editors, change the height of the analysis panel, hide the bottom panel, or expand one editor.
 - **Field Mapping:** Add, edit, delete, filter, and reorder rows. Set transformation rules, required fields, default values, and descriptions.
 - **Field discovery and matching:** Find fields in JSON/XML/IDoc payloads, select a source and target to create one mapping row, or add fields on one side individually or in a group.
@@ -129,6 +131,16 @@ Click an **Invalid JSON / XML** message below an editor to focus the reported er
 Use the bookmark button above an editor, or click an empty line-decoration area beside a line number, to toggle a temporary bookmark. Previous/next buttons cycle through bookmarks, and the clear button removes all bookmarks in that editor. Keyboard shortcuts while the editor is focused: **Ctrl / ⌘ + F2** toggles a bookmark, **F2** goes to the next, and **Shift + F2** goes to the previous. The editor context menu also includes these actions and **Copy field path**.
 
 Bookmarks move with their lines during edits. Replacing a whole payload, formatting it, importing Excel, or opening/clearing a workspace clears temporary bookmarks. Paths, highlights, and bookmarks do not modify payload text or mark the workspace as unsaved. Bookmarks and navigation state are not saved in Excel or PDF.
+
+### Payload files and tree view
+
+Use **Download source payload** or **Download target payload** in the upper-right corner of each editor header to download the current payload directly. JSON uses `.json`, XML and IDoc XML use `.xml`, SQL uses `.sql`, and plain text uses `.txt`. Filenames include the integration name (or system name), source/target side, and local date. Downloads use UTF-8 without formatting or validation; existing line endings, whitespace, duplicate JSON keys, number text, and XML declarations stay as entered. If an XML declaration specifies another encoding, it is preserved as text; the downloaded bytes are still UTF-8. A raw download saves one payload; export Excel to save the complete workspace.
+
+The **tree icon beside Format** switches that editor between code and **Source tree view** or **Target tree view**. The other editor stays available. Click the same icon or **Code** to return without losing undo history or bookmarks. Expand or collapse branches, search field names/paths, and inspect node types and value previews. Use **Show field details** to open a raw-fragment pane when needed. Duplicate JSON keys and repeated XML siblings stay separate. Numeric previews retain the original number text. XML attributes and CDATA/text previews are included; namespace declarations remain visible in the raw editor rather than separate field nodes.
+
+Select a node and choose **Show in editor**, double-click a node, or press **Enter** in the tree to locate that exact occurrence in the text editor. Arrow keys navigate and expand/collapse branches; Home/End move to the first/last visible node. Large trees render a window of rows so expanding many nodes does not create thousands of DOM elements at once. Raw fragment previews stop at 32,000 characters; the editor and downloads retain the complete content.
+
+Tree view uses the same local index limits as field navigation and requires valid JSON/XML/IDoc XML. SQL and plain text keep their text editors and raw download support. Opening a tree or downloading a payload does not change the analysis or mark the workspace as saved.
 
 ### Transformation rules
 

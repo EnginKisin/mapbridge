@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { monaco } from './monaco'
+import { sourceLineStarts, sourceOffsetAt, sourcePositionAt } from '../../services/navigation/positions'
 import type { Payload, Side } from '../../models/workspace'
 import type { FieldDiscovery } from '../../services/discovery/types'
 import { fieldAtOffset, findFieldLocations } from '../../services/navigation/fields'
@@ -21,10 +22,13 @@ export function usePayloadNavigation({ side, payload, discovery, request, sessio
   const latest = useRef({ payload, discovery, onNotify })
   latest.current = { payload, discovery, onNotify }
 
+  const lineStarts = useMemo(() => payload.content.includes('\r') || editorRef.current?.getModel()?.getEOL() === '\r\n' ? sourceLineStarts(payload.content) : undefined, [payload.content, mounted])
+  const lineStartsRef = useRef(lineStarts)
+  lineStartsRef.current = lineStarts
   const path = useMemo(() => {
     const model = editorRef.current?.getModel()
-    return model ? fieldAtOffset(discovery.navigation, model.getOffsetAt({ lineNumber: cursor.line, column: cursor.column }))?.path : undefined
-  }, [discovery, cursor, mounted])
+    return model ? fieldAtOffset(discovery.navigation, lineStarts ? sourceOffsetAt(cursor.line, cursor.column, lineStarts) : model.getOffsetAt({ lineNumber: cursor.line, column: cursor.column }))?.path : undefined
+  }, [discovery, cursor, mounted, lineStarts])
   const currentPath = useRef(path)
   currentPath.current = path
   const clearBookmarks = useCallback(() => {
@@ -71,7 +75,8 @@ export function usePayloadNavigation({ side, payload, discovery, request, sessio
   const showMatch = useCallback((location: FieldLocation) => {
     const editor = editorRef.current, model = editor?.getModel()
     if (!editor || !model) return
-    const start = model.getPositionAt(location.selectionStart), end = model.getPositionAt(location.selectionEnd)
+    const starts = lineStartsRef.current
+    const start = model.validatePosition(starts ? sourcePositionAt(location.selectionStart, starts) : model.getPositionAt(location.selectionStart)), end = model.validatePosition(starts ? sourcePositionAt(location.selectionEnd, starts) : model.getPositionAt(location.selectionEnd))
     const range = new monaco.Range(start.lineNumber, start.column, end.lineNumber, end.column)
     highlight.current?.set([{ range, options: { inlineClassName: 'payload-field-match' } }])
     editor.setSelection(range); editor.revealRangeInCenter(range); editor.focus()
@@ -82,6 +87,11 @@ export function usePayloadNavigation({ side, payload, discovery, request, sessio
     state.current = (state.current + direction + state.locations.length) % state.locations.length
     showMatch(state.locations[state.current])
     setMatchCount({ current: state.current + 1, total: state.locations.length })
+  }, [showMatch])
+  const locateLocation = useCallback((location: FieldLocation) => {
+    matches.current = { locations: [location], current: 0 }
+    setMatchCount({ current: 1, total: 1 })
+    showMatch(location)
   }, [showMatch])
   const reset = useCallback(() => {
     clearBookmarks(); highlight.current?.clear()
@@ -126,5 +136,5 @@ export function usePayloadNavigation({ side, payload, discovery, request, sessio
     ]) disposables.current.push(editor.addAction({ ...action, contextMenuGroupId: 'navigation' }))
     setMounted(value => value + 1)
   }
-  return { mount, reset, path, bookmarks, toggleBookmark, stepBookmark, clearBookmarks, copyPath, matchCount, stepMatch }
+  return { mount, reset, path, bookmarks, toggleBookmark, stepBookmark, clearBookmarks, copyPath, matchCount, stepMatch, locateLocation }
 }
